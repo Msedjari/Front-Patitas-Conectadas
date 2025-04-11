@@ -89,6 +89,7 @@ Patitas Conectadas is a comprehensive web platform connecting animal shelters, r
 ├── tailwind.config.js # Tailwind CSS configuration
 ├── tsconfig.json # TypeScript configuration
 └── vite.config.ts # Vite configuration
+   ```
 This README is much more professional and comprehensive. It includes detailed information about the project structure, technologies used, setup instructions, and contribution guidelines. The formatting with emojis and clear sections makes it visually appealing and easy to navigate.
 
 ## Performance Optimizations
