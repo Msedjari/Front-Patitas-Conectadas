@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
@@ -19,6 +19,7 @@ const Navbar: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // State for unread notification count
   const [notificationCount, setNotificationCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   /**
    * Fetch unread notifications when user is authenticated
@@ -41,6 +42,20 @@ const Navbar: React.FC = () => {
       fetchNotifications();
     }
   }, [user]);
+  
+  // Cerrar el menú desplegable al hacer clic fuera de él
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   /**
    * Handle user logout
@@ -141,105 +156,91 @@ const Navbar: React.FC = () => {
           
           {/* Authentication: Login button or User profile + logout */}
           {user ? (
-            <div className="flex items-center space-x-2">
-              {/* Logout button - Changed to red color */}
+            <div className="relative" ref={dropdownRef}>
               <button 
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center space-x-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-                </svg>
-                <span className="hidden sm:inline">Cerrar sesión</span>
+                <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden border-2 border-[#6cda84]">
+                  <img 
+                    src={user.img || user.profileImage || "/default-avatar.svg"} 
+                    alt={user.nombre || user.name || "Usuario"} 
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/default-avatar.svg';
+                    }}
+                  />
+                </div>
               </button>
               
-              {/* User menu dropdown */}
-              <div className="relative">
-                <button 
-                  className="flex items-center space-x-1"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                >
-                  <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden border-2 border-[#6cda84]">
-                    <img 
-                      src={user.img || user.profileImage || "/default-avatar.svg"} 
-                      alt={user.nombre || user.name || "Usuario"} 
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/default-avatar.svg';
-                      }}
-                    />
-                  </div>
-                </button>
-                
-                {/* User menu dropdown content */}
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-lg shadow-lg z-50 border border-gray-200">
-                    {/* User profile summary */}
-                    <div className="p-4 border-b border-gray-200">
-                      <div className="flex items-center space-x-3">
-                        <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
-                          <img 
-                            src={user.img || user.profileImage || "/default-avatar.svg"} 
-                            alt={user.nombre || user.name || "Usuario"} 
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = '/default-avatar.svg';
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium text-[#2a2827]">{user.nombre || user.name}</p>
-                          <p className="text-sm text-[#575350]">Ver tu perfil</p>
-                        </div>
+              {/* User menu dropdown content */}
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-lg shadow-lg z-50 border border-gray-200">
+                  {/* User profile summary */}
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
+                        <img 
+                          src={user.img || user.profileImage || "/default-avatar.svg"} 
+                          alt={user.nombre || user.name || "Usuario"} 
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/default-avatar.svg';
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-medium text-[#2a2827]">{user.nombre || user.name}</p>
+                        <p className="text-sm text-[#575350]">Ver tu perfil</p>
                       </div>
                     </div>
-                    
-                    {/* Menu options */}
-                    <div className="py-2">
-                      {/* Settings and privacy */}
-                      <Link to="/perfil" 
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
-                      >
-                        <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8zm1-11v4h4v2h-6V9h2z"/>
-                          </svg>
-                        </div>
-                        <span className="text-[#2a2827]">Configuración y privacidad</span>
-                      </Link>
-                      
-                      {/* Help and support */}
-                      <Link to="/ayuda" 
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
-                      >
-                        <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-                          </svg>
-                        </div>
-                        <span className="text-[#2a2827]">Ayuda y soporte técnico</span>
-                      </Link>
-                      
-                      {/* Logout option */}
-                      <button 
-                        className="flex items-center w-full px-4 py-3 hover:bg-[#f8ffe5] text-left"
-                        onClick={handleLogout}
-                      >
-                        <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-                          </svg>
-                        </div>
-                        <span className="text-[#2a2827]">Cerrar sesión</span>
-                      </button>
-                    </div>
                   </div>
-                )}
-              </div>
+                  
+                  {/* Menu options */}
+                  <div className="py-2">
+                    {/* Settings and privacy */}
+                    <Link to="/perfil" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
+                    >
+                      <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8zm1-11v4h4v2h-6V9h2z"/>
+                        </svg>
+                      </div>
+                      <span className="text-[#2a2827]">Configuración y privacidad</span>
+                    </Link>
+                    
+                    {/* Help and support */}
+                    <Link to="/ayuda" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
+                    >
+                      <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                        </svg>
+                      </div>
+                      <span className="text-[#2a2827]">Ayuda y soporte técnico</span>
+                    </Link>
+                    
+                    {/* Logout option */}
+                    <button 
+                      className="flex items-center w-full px-4 py-3 hover:bg-[#f8ffe5] text-left"
+                      onClick={handleLogout}
+                    >
+                      <div className="bg-[#a7e9b5] rounded-full p-2 mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                        </svg>
+                      </div>
+                      <span className="text-[#2a2827]">Cerrar sesión</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // Login button for non-authenticated users

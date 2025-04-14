@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Intentando obtener datos del usuario...');
       
       // Intentar obtener los datos del usuario con el token
-      const response = await fetch(`${config.apiUrl}/usuarios/perfil`, {
+      const response = await fetch(`${config.apiUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -88,22 +88,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Error al obtener datos del usuario:', response.statusText);
         
         // Si el endpoint no existe, intentamos mantener los datos en localStorage
-        // En un entorno de desarrollo esto permite trabajar sin backend
-        if (import.meta.env.DEV) {
-          console.log('En modo desarrollo, manteniendo datos guardados');
-          const savedUser = localStorage.getItem(config.session.userKey);
-          if (savedUser) {
-            try {
-              const parsedUser = JSON.parse(savedUser);
-              setUser(parsedUser);
-            } catch (error) {
-              console.error('Error al parsear usuario guardado:', error);
-            }
+        const savedUser = localStorage.getItem(config.session.userKey);
+        if (savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            setUser(parsedUser);
+            console.log('Usando datos de usuario guardados en localStorage');
+          } catch (error) {
+            console.error('Error al parsear usuario guardado:', error);
           }
         }
       }
     } catch (error) {
       console.error('Error al obtener datos del usuario:', error);
+      // Intentar mantener la sesión con datos guardados si están disponibles
+      const savedUser = localStorage.getItem(config.session.userKey);
+      if (savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          console.log('Usando datos de usuario guardados en localStorage debido a error');
+        } catch (parseError) {
+          console.error('Error al parsear usuario guardado:', parseError);
+        }
+      }
     }
   };
   
@@ -224,28 +232,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } else {
       console.log('No se encontró usuario o token en localStorage');
-      
-      // En modo desarrollo, crear un usuario simulado para facilitar las pruebas
-      if (import.meta.env.DEV) {
-        const createDevUser = () => {
-          console.log('Creando usuario de desarrollo para pruebas');
-          const mockUser = {
-            id: '1',
-            nombre: 'Usuario Desarrollo',
-            email: 'dev@example.com',
-            apellidos: 'Test',
-          };
-          
-          setUser(mockUser);
-          localStorage.setItem(config.session.userKey, JSON.stringify(mockUser));
-          localStorage.setItem(config.session.tokenKey, 'dev-token-123');
-        };
-        
-        // En desarrollo, permitir habilitar el usuario de desarrollo con una variable
-        if (import.meta.env.VITE_USE_DEV_USER === 'true') {
-          createDevUser();
-        }
-      }
     }
   }, []);
   

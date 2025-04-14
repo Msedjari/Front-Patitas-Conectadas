@@ -222,13 +222,10 @@ export const deleteProfile = async (id: number, headers?: CustomHeaders): Promis
 export const fetchCurrentUserProfile = async (userId: number, headers?: CustomHeaders): Promise<Profile> => {
   try {
     // Logging para debugging
-    console.log(`Realizando petición a: ${config.apiUrl}/perfiles/usuario/${userId}`);
-    console.log('Headers:', headers);
+    console.log(`Intentando obtener perfil para usuario: ${userId}`);
     
-    // Intentar obtener el perfil del usuario por su ID
-    // Nota: Esta ruta específica para obtener perfil por usuario_id no está en la documentación API
-    // pero intentamos usarla. Si falla, buscaremos en todos los perfiles.
-    const response = await fetch(`${config.apiUrl}/perfiles/usuario/${userId}`, {
+    // De acuerdo a la documentación, la ruta correcta es /usuarios/{id}/perfiles
+    const response = await fetch(`${config.apiUrl}/usuarios/${userId}/perfiles`, {
       headers: headers  // Incluir headers si fueron proporcionados (generalmente token)
     });
     
@@ -237,20 +234,8 @@ export const fetchCurrentUserProfile = async (userId: number, headers?: CustomHe
     // Verificar la respuesta
     if (!response.ok) {
       if (response.status === 404) {
-        // Si obtenemos un 404, puede que la ruta no exista o que el perfil no exista
-        console.log('Perfil o ruta no encontrada. Intentando obtener todos los perfiles para filtrar');
-        
-        // Alternativa: obtener todos los perfiles y filtrar
-        const perfiles = await fetchProfiles(headers);
-        const userProfile = perfiles.find(p => p.usuario_id === userId);
-        
-        if (userProfile) {
-          console.log('Perfil encontrado entre todos los perfiles:', userProfile);
-          return userProfile;
-        }
-        
-        // Si no encontramos el perfil, creamos uno nuevo
-        console.log('Perfil no encontrado, se creará uno nuevo');
+        // Si no existe un perfil para este usuario, crear uno nuevo
+        console.log('Perfil no encontrado, intentando crear uno nuevo');
         
         // Preparar datos mínimos para un nuevo perfil
         const nuevoPerfilData: Profile = {
@@ -271,7 +256,7 @@ export const fetchCurrentUserProfile = async (userId: number, headers?: CustomHe
     
     // Si todo va bien, parsear y retornar el perfil encontrado
     const data = await response.json();
-    console.log('Datos recibidos:', data);
+    console.log('Datos de perfil recibidos:', data);
     return data;
   } catch (error) {
     // Registrar error específico para debugging

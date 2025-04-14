@@ -3,16 +3,14 @@ import { config } from '../../config';
 
 /**
  * Componente de barra lateral derecha con estilo de Facebook
- * Muestra anuncios, recordatorios de cumpleaños y contactos
+ * Muestra recordatorios de cumpleaños y contactos
  */
 const RightSidebar: React.FC = () => {
   // Estados para datos desde el backend
   const [petEvents, setPetEvents] = useState<any[]>([]);
-  const [sponsoredContent, setSponsoredContent] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState({
     events: false,
-    sponsored: false,
     contacts: false
   });
 
@@ -47,33 +45,6 @@ const RightSidebar: React.FC = () => {
     fetchPetEvents();
   }, []);
 
-  // Obtener anuncios patrocinados
-  useEffect(() => {
-    const fetchSponsored = async () => {
-      try {
-        setLoading(prev => ({ ...prev, sponsored: true }));
-        const response = await fetch(`${config.apiUrl}/anuncios`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setSponsoredContent(data);
-        } else {
-          console.error('Error al obtener anuncios:', response.status);
-        }
-      } catch (error) {
-        console.error('Error al cargar anuncios:', error);
-      } finally {
-        setLoading(prev => ({ ...prev, sponsored: false }));
-      }
-    };
-
-    fetchSponsored();
-  }, []);
-
   // Obtener contactos
   useEffect(() => {
     const fetchContacts = async () => {
@@ -106,55 +77,7 @@ const RightSidebar: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-full pt-4 pb-4 overflow-y-auto p-3">
-      {/* Sección de anuncios */}
-      <section className="mb-6">
-        <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Patrocinados</h3>
-        
-        {loading.sponsored ? (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84]"></div>
-          </div>
-        ) : sponsoredContent.length > 0 ? (
-          sponsoredContent.map(ad => (
-            <a 
-              key={ad.id}
-              href={ad.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center mb-3 hover:bg-white rounded-lg p-2 transition-colors"
-            >
-              <div className="w-[120px] h-[80px] bg-white rounded-lg mr-3 overflow-hidden border border-[#a7e9b5]">
-                {ad.imagen ? (
-                  <img 
-                    src={ad.imagen} 
-                    alt={ad.titulo} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/default-ad.svg';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-white text-[#3d7b6f] text-xs">
-                    Imagen de patrocinador
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-[#2a2827] font-medium">{ad.titulo}</p>
-                <p className="text-xs text-[#575350]">{ad.url_sitio || "patrocinado.com"}</p>
-              </div>
-            </a>
-          ))
-        ) : (
-          <p className="text-sm text-[#575350] text-center py-2">No hay anuncios disponibles.</p>
-        )}
-      </section>
-      
-      {/* Divisor */}
-      <div className="border-t border-[#a7e9b5] mb-4"></div>
-      
+    <div className="h-full pt-4 pb-4 overflow-y-auto p-3">      
       {/* Recordatorios de mascotas */}
       <section className="mb-6">
         <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Recordatorios de mascotas</h3>
