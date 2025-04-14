@@ -3,8 +3,17 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 /**
- * Componente de barra lateral izquierda
- * Muestra la información del usuario y los enlaces de navegación principales
+ * Componente de Barra Lateral Izquierda
+ * 
+ * Muestra la información del usuario actual, junto con enlaces de navegación 
+ * principales y accesos directos a grupos. Esta barra lateral permanece fija
+ * en la interfaz y proporciona navegación contextual dentro de la aplicación.
+ * 
+ * Características:
+ * - Muestra el perfil del usuario actual
+ * - Proporciona enlaces a secciones principales (Amigos, Grupos, etc.)
+ * - Muestra accesos directos a grupos frecuentes
+ * - Implementa iconos visuales para cada sección
  */
 const Sidebar: React.FC = () => {
   // En una aplicación real, usaríamos el contexto de autenticación
@@ -54,24 +63,6 @@ const Sidebar: React.FC = () => {
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6cda84]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        );
-      case 'marketplace':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#2e82dc]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-        );
-      case 'photos':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6cda84]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        );
-      case 'memories':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#2e82dc]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'group':

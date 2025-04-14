@@ -4,26 +4,53 @@ import { config } from '../../config';
 
 /**
  * Interfaz para el modelo de Post
+ * Actualizamos la interfaz para que coincida con la estructura real de los datos
  */
 interface Post {
   id: number;
-  creador_id: number;
   contenido: string;
   fecha: string;
   img?: string;
-  usuario: {
+  createdAt?: string;
+  updatedAt?: string;
+  creador: {
+    id: number;
     nombre: string;
-    imagen?: string;
+    apellido?: string;
+    email?: string;
   };
-  estadisticas: {
+  grupo?: any;
+  estadisticas?: {
     likes: number;
     comentarios: number;
   };
 }
 
 /**
- * Componente de página de inicio
- * Muestra el formulario para crear posts y el feed de publicaciones
+ * Interfaz para almacenar imágenes de usuarios en caché
+ */
+interface UserImagesCache {
+  [userId: number]: string;
+}
+
+/**
+ * Componente de Página de Inicio (Feed)
+ * 
+ * Este componente muestra el feed principal de la aplicación, permitiendo
+ * visualizar y crear publicaciones. Implementa una interfaz similar a redes
+ * sociales donde los usuarios pueden compartir contenido con texto e imágenes.
+ * 
+ * Características principales:
+ * - Formulario para crear nuevas publicaciones con texto e imágenes
+ * - Visualización del feed de publicaciones de la comunidad
+ * - Sistema de caché para imágenes de usuarios por IDs
+ * - Carga optimizada de datos desde el backend
+ * 
+ * El componente gestiona la obtención de imágenes de perfil de los creadores
+ * de publicaciones mediante un sistema de caché para evitar peticiones redundantes.
+ * 
+ * Nota: La funcionalidad de likes, comentarios y estadísticas está actualmente
+ * desactivada en la interfaz.
  */
 const Home: React.FC = () => {
   // Estado para el texto del nuevo post
@@ -37,6 +64,8 @@ const Home: React.FC = () => {
   // Estado para manejar errores
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Caché para almacenar las imágenes de usuario y evitar peticiones repetidas
+  const [userImagesCache, setUserImagesCache] = useState<UserImagesCache>({});
   
   const { user } = useAuth();
 
@@ -48,11 +77,19 @@ const Home: React.FC = () => {
         setLoading(true);
         
         // Realizar la llamada al backend con la ruta correcta
-        const response = await fetch(`${config.apiUrl}/posts`);
+        const response = await fetch(`${config.apiUrl}/posts`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          }
+        });
         
         if (response.ok) {
           const data = await response.json();
           setPosts(data);
+          
+          // Obtener IDs únicos de creadores para buscar sus imágenes
+          const uniqueCreatorIds = [...new Set(data.map(post => post.creador.id))];
+          fetchUserImages(uniqueCreatorIds);
         } else {
           throw new Error(`Error: ${response.status} - ${response.statusText}`);
         }
@@ -66,6 +103,59 @@ const Home: React.FC = () => {
     
     fetchPosts();
   }, []);
+  
+  /**
+   * Función para obtener las imágenes de perfil de los usuarios por ID
+   */
+  const fetchUserImages = async (userIds: number[]) => {
+    try {
+      // Filtrar los IDs que ya tenemos en caché
+      const idsToFetch = userIds.filter(id => !userImagesCache[id]);
+      
+      if (idsToFetch.length === 0) return;
+      
+      // Para cada ID, obtener la imagen del usuario
+      const newCache = {...userImagesCache};
+      
+      for (const userId of idsToFetch) {
+        try {
+          const response = await fetch(`${config.apiUrl}/usuarios/${userId}/perfiles`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            // Guardar la imagen en el caché
+            if (userData.img) {
+              newCache[userId] = userData.img;
+            } else {
+              // Si no tiene imagen, usar una por defecto
+              newCache[userId] = '/default-avatar.svg';
+            }
+          } else {
+            newCache[userId] = '/default-avatar.svg';
+          }
+        } catch (error) {
+          console.error(`Error al obtener imagen para usuario ${userId}:`, error);
+          newCache[userId] = '/default-avatar.svg';
+        }
+      }
+      
+      // Actualizar el caché
+      setUserImagesCache(newCache);
+    } catch (error) {
+      console.error('Error al obtener imágenes de usuarios:', error);
+    }
+  };
+  
+  /**
+   * Función para obtener la imagen de un usuario desde el caché
+   */
+  const getUserImage = (userId: number): string => {
+    return userImagesCache[userId] || '/default-avatar.svg';
+  };
 
   /**
    * Maneja el envío del formulario para crear un nuevo post
@@ -88,15 +178,13 @@ const Home: React.FC = () => {
         };
         img?: string;
       }
-      
+
       const postData: PostData = {
         contenido: postText,
         creador: {
           id: user?.id || 1 // Usar el ID del usuario si está disponible, o 1 como fallback
         }
       };
-      
-      // Añadir la imagen si existe
       if (postImageUrl) {
         postData.img = postImageUrl;
       }
@@ -108,7 +196,8 @@ const Home: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "*/*"
+          "Accept": "*/*",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(postData),
       });
@@ -155,11 +244,12 @@ const Home: React.FC = () => {
     return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
   };
 
-  // Estado para historias
-  const [stories, setStories] = useState<any[]>([]);
-  const [loadingStories, setLoadingStories] = useState(false);
+  // Estado para historias - ahora comentado
+  // const [stories, setStories] = useState<any[]>([]);
+  // const [loadingStories, setLoadingStories] = useState(false);
 
-  // Obtener historias del backend
+  // Obtener historias del backend - ahora comentado
+  /*
   useEffect(() => {
     const fetchStories = async () => {
       if (!user) return;
@@ -189,13 +279,15 @@ const Home: React.FC = () => {
     
     fetchStories();
   }, [user]);
+  */
 
   return (
     <div>
-      {/* Sección de historias  */}
+      {/* Sección de historias - ahora comentada */}
+      {/*
       <div className="mb-4 overflow-x-auto no-scrollbar">
         <div className="flex space-x-2 pb-2">
-          {/* Historia para crear */}
+          <!-- Historia para crear -->
           <div className="relative flex-shrink-0 w-[115px] h-[200px] rounded-lg overflow-hidden bg-white shadow-sm cursor-pointer border border-gray-200">
             <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
               <div className="w-10 h-10 rounded-full bg-[#f8ffe5] flex items-center justify-center mb-2 border border-[#6cda84]">
@@ -207,7 +299,7 @@ const Home: React.FC = () => {
             </div>
           </div>
           
-          {/* Historias de usuarios */}
+          <!-- Historias de usuarios -->
           {loadingStories ? (
             <div className="flex-shrink-0 w-[115px] h-[200px] flex items-center justify-center">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84]"></div>
@@ -215,17 +307,17 @@ const Home: React.FC = () => {
           ) : (
             stories.map(story => (
               <div key={story.id} className="relative flex-shrink-0 w-[115px] h-[200px] rounded-lg overflow-hidden shadow-sm cursor-pointer border border-gray-200">
-                {/* Overlay para oscurecer un poco la imagen */}
+                <!-- Overlay para oscurecer un poco la imagen -->
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black opacity-60"></div>
                 
-                {/* Avatar del usuario */}
+                <!-- Avatar del usuario -->
                 <div className="absolute top-3 left-3 w-9 h-9 rounded-full border-4 border-[#6cda84] bg-white overflow-hidden z-10">
                   <div className="w-full h-full flex items-center justify-center bg-[#a7e9b5] text-[#3d7b6f] text-xs font-bold">
                     {story.usuario?.nombre?.charAt(0) || '?'}
                   </div>
                 </div>
                 
-                {/* Nombre del usuario */}
+                <!-- Nombre del usuario -->
                 <div className="absolute bottom-3 left-3 right-3 z-10">
                   <p className="text-white text-xs font-medium">{story.usuario?.nombre || "Usuario"}</p>
                 </div>
@@ -234,6 +326,7 @@ const Home: React.FC = () => {
           )}
         </div>
       </div>
+      */}
       
       {/* Mensaje de error si existe */}
       {error && (
@@ -256,7 +349,7 @@ const Home: React.FC = () => {
         <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-200">
           <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
             <img 
-              src={user?.profileImage || "/default-avatar.svg"} 
+              src={getUserImage(user?.id || 1)} 
               alt="Avatar" 
               className="h-full w-full object-cover"
               onError={(e) => {
@@ -349,8 +442,8 @@ const Home: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
                   <img 
-                    src={post.usuario?.imagen || "/default-avatar.svg"} 
-                    alt={post.usuario?.nombre || "Usuario"} 
+                    src={getUserImage(post.creador.id)} 
+                    alt={post.creador.nombre || "Usuario"} 
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -359,8 +452,10 @@ const Home: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <p className="font-medium text-sm text-[#2a2827]">{post.usuario?.nombre || "Usuario"}</p>
-                  <p className="text-[#575350] text-xs">{formatRelativeTime(post.fecha)}</p>
+                  <p className="font-medium text-sm text-[#2a2827]">
+                    {post.creador.nombre} {post.creador.apellido || ""}
+                  </p>
+                  <p className="text-[#575350] text-xs">{formatRelativeTime(post.fecha || post.createdAt || '')}</p>
                 </div>
               </div>
               <button className="text-[#575350] hover:text-[#2a2827] rounded-full w-8 h-8 flex items-center justify-center hover:bg-[#f8ffe5]">
@@ -443,7 +538,7 @@ const Home: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
                   <img 
-                    src={user?.profileImage || "/default-avatar.svg"} 
+                    src={getUserImage(user?.id || 1)} 
                     alt="Avatar" 
                     className="h-full w-full object-cover"
                     onError={(e) => {

@@ -2,8 +2,18 @@
  * Componente de Perfil de Usuario
  * 
  * Este componente permite visualizar y editar la información del perfil de usuario.
- * Muestra datos personales y enlaces a otras secciones relacionadas.
- * Integra funcionalidades de carga, edición y actualización de perfiles mediante la API.
+ * Muestra datos personales como descripción, fecha de nacimiento, intereses y
+ * foto de perfil, permitiendo su edición directa.
+ * 
+ * Características:
+ * - Vista detallada del perfil de usuario
+ * - Edición de información personal
+ * - Actualización de imagen de perfil mediante URL
+ * - Gestión de intereses/tags mediante interfaz intuitiva
+ * - Validación y formateo de datos
+ * 
+ * El componente se comunica con la API para obtener y actualizar la información
+ * del perfil, utilizando los endpoints correspondientes.
  */
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';

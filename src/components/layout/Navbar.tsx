@@ -7,9 +7,15 @@ import logoImage from '../../assets/logo.png'; // Importación del logo
 /**
  * Navbar Component
  * 
- * Top navigation bar that contains the logo, search bar, navigation icons, 
- * and user menu. It handles user authentication status and displays appropriate
- * navigation options based on whether a user is logged in.
+ * Barra de navegación superior que contiene el logo, barra de búsqueda, 
+ * iconos de navegación y menú de usuario. Maneja el estado de autenticación 
+ * y muestra las opciones de navegación apropiadas según si un usuario ha 
+ * iniciado sesión o no.
+ * 
+ * Funcionalidades principales:
+ * - Navegación a secciones principales de la aplicación
+ * - Acceso al perfil de usuario y menú desplegable
+ * - Opciones de inicio/cierre de sesión
  */
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -17,13 +23,14 @@ const Navbar: React.FC = () => {
   
   // State to control user menu dropdown visibility
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  // State for unread notification count
-  const [notificationCount, setNotificationCount] = useState(0);
+  // State for unread notification count - ahora comentado
+  // const [notificationCount, setNotificationCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   /**
-   * Fetch unread notifications when user is authenticated
+   * Fetch unread notifications when user is authenticated - ahora comentado
    */
+  /*
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -42,6 +49,7 @@ const Navbar: React.FC = () => {
       fetchNotifications();
     }
   }, [user]);
+  */
   
   // Cerrar el menú desplegable al hacer clic fuera de él
   useEffect(() => {
@@ -133,7 +141,8 @@ const Navbar: React.FC = () => {
           {/* Notification and message buttons - Only visible for authenticated users */}
           {user && (
             <>
-              {/* Notifications button with counter badge */}
+              {/* Notifications button with counter badge - ahora comentado */}
+              {/*
               <button className="p-2 rounded-full bg-white hover:bg-gray-200 text-[#3d7b6f] relative">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
@@ -144,6 +153,7 @@ const Navbar: React.FC = () => {
                   </span>
                 )}
               </button>
+              */}
               
               {/* Messages button */}
               <button className="p-2 rounded-full bg-white hover:bg-gray-200 text-[#3d7b6f]">
@@ -154,7 +164,7 @@ const Navbar: React.FC = () => {
             </>
           )}
           
-          {/* Authentication: Login button or User profile + logout */}
+          {/* Authentication: Login and register buttons for non-authenticated users */}
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button 
@@ -201,7 +211,7 @@ const Navbar: React.FC = () => {
                   {/* Menu options */}
                   <div className="py-2">
                     {/* Settings and privacy */}
-                    <Link to="/perfil" 
+                    <Link to="/perfiles" 
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
                     >
@@ -243,16 +253,21 @@ const Navbar: React.FC = () => {
               )}
             </div>
           ) : (
-            // Login button for non-authenticated users
-            <button 
-              onClick={() => navigate('/login')}
-              className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-              </svg>
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
+            // Login and register buttons for non-authenticated users
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 border border-[#6cda84] text-[#3d7b6f] rounded-lg hover:bg-[#f8ffe5] transition-colors"
+              >
+                Iniciar sesión
+              </button>
+              <button 
+                onClick={() => navigate('/register')}
+                className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
+              >
+                Registrarse
+              </button>
+            </div>
           )}
         </div>
       </div>
