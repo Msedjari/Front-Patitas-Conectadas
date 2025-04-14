@@ -34,7 +34,7 @@ export interface Post {
 export const fetchPosts = async (): Promise<Post[]> => {
   try {
     // La URL base viene del objeto config para mantener centralizada la configuración
-    const response = await fetch(`${config.apiUrl}/publicaciones`);
+    const response = await fetch(`${config.apiUrl}/posts`);
     
     // Verificamos si la respuesta fue exitosa (código 2xx)
     if (!response.ok) {
@@ -59,7 +59,7 @@ export const fetchPosts = async (): Promise<Post[]> => {
 export const fetchPostById = async (id: number): Promise<Post> => {
   try {
     // Hacemos la petición GET a la API con el ID específico
-    const response = await fetch(`${config.apiUrl}/publicaciones/${id}`);
+    const response = await fetch(`${config.apiUrl}/posts/${id}`);
     
     // Verificamos si la respuesta fue exitosa
     if (!response.ok) {
@@ -83,7 +83,7 @@ export const fetchPostById = async (id: number): Promise<Post> => {
 export const createPost = async (postData: Post): Promise<Post> => {
   try {
     // Realizamos la petición POST con los datos de la nueva publicación
-    const response = await fetch(`${config.apiUrl}/publicaciones`, {
+    const response = await fetch(`${config.apiUrl}/posts`, {
       method: 'POST',                           // Método HTTP para crear recursos
       headers: {
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
@@ -114,7 +114,7 @@ export const updatePost = async (id: number, postData: Partial<Post>): Promise<P
   try {
     // Realizamos la petición PUT para actualizar el recurso
     // Partial<Post> permite enviar solo los campos que queremos actualizar
-    const response = await fetch(`${config.apiUrl}/publicaciones/${id}`, {
+    const response = await fetch(`${config.apiUrl}/posts/${id}`, {
       method: 'PUT',                            // Método HTTP para actualizar recursos
       headers: {
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
@@ -143,7 +143,7 @@ export const updatePost = async (id: number, postData: Partial<Post>): Promise<P
 export const deletePost = async (id: number): Promise<void> => {
   try {
     // Realizamos la petición DELETE para eliminar el recurso
-    const response = await fetch(`${config.apiUrl}/publicaciones/${id}`, {
+    const response = await fetch(`${config.apiUrl}/posts/${id}`, {
       method: 'DELETE',                         // Método HTTP para eliminar recursos
     });
     
@@ -166,7 +166,7 @@ export const deletePost = async (id: number): Promise<void> => {
 export const fetchPostsByUser = async (userId: number): Promise<Post[]> => {
   try {
     // Realizamos la petición para obtener publicaciones filtradas por usuario
-    const response = await fetch(`${config.apiUrl}/publicaciones/usuario/${userId}`);
+    const response = await fetch(`${config.apiUrl}/posts/usuario/${userId}`);
     
     // Verificamos si la respuesta fue exitosa
     if (!response.ok) {
@@ -189,7 +189,7 @@ export const fetchPostsByUser = async (userId: number): Promise<Post[]> => {
 export const fetchPostsByGroup = async (groupId: number): Promise<Post[]> => {
   try {
     // Realizamos la petición para obtener publicaciones filtradas por grupo
-    const response = await fetch(`${config.apiUrl}/publicaciones/grupo/${groupId}`);
+    const response = await fetch(`${config.apiUrl}/posts/grupo/${groupId}`);
     
     // Verificamos si la respuesta fue exitosa
     if (!response.ok) {

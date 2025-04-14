@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
-import { createPost } from '../../services/postService';
 
 /**
  * Interfaz para el modelo de Post
@@ -29,8 +28,8 @@ interface Post {
 const Home: React.FC = () => {
   // Estado para el texto del nuevo post
   const [postText, setPostText] = useState('');
-  // Estado para la imagen del nuevo post
-  const [postImage, setPostImage] = useState<File | null>(null);
+  // Estado para la imagen del nuevo post (ahora es URL en lugar de File)
+  const [postImageUrl, setPostImageUrl] = useState<string>('');
   // Estado para almacenar las publicaciones
   const [posts, setPosts] = useState<Post[]>([]);
   // Estado para indicar carga
@@ -48,7 +47,7 @@ const Home: React.FC = () => {
       try {
         setLoading(true);
         
-        // Realizar la llamada al backend
+        // Realizar la llamada al backend con la ruta correcta
         const response = await fetch(`${config.apiUrl}/posts`);
         
         if (response.ok) {
@@ -76,31 +75,42 @@ const Home: React.FC = () => {
     e.preventDefault();
     
     // Comprobar que hay al menos texto o imagen
-    if (!postText.trim() && !postImage) return;
+    if (!postText.trim() && !postImageUrl) return;
     
     try {
       setIsSubmitting(true);
       
-      // Crear FormData para enviar los datos
-      const formData = new FormData();
-      formData.append('contenido', postText);
-      
-      // Si hay un usuario autenticado, añadir su ID (opcional)
-      if (user) {
-        formData.append('creador_id', user.id);
+      // Crear el objeto JSON para la solicitud
+      interface PostData {
+        contenido: string;
+        creador: {
+          id: number | string;
+        };
+        img?: string;
       }
+      
+      const postData: PostData = {
+        contenido: postText,
+        creador: {
+          id: user?.id || 1 // Usar el ID del usuario si está disponible, o 1 como fallback
+        }
+      };
       
       // Añadir la imagen si existe
-      if (postImage) {
-        formData.append('imagen', postImage);
+      if (postImageUrl) {
+        postData.img = postImageUrl;
       }
       
-      console.log('Enviando publicación:', { texto: postText, tieneImagen: !!postImage });
+      console.log('Enviando publicación:', postData);
       
-      // Enviar la petición al backend
+      // Realizar la petición fetch con JSON
       const response = await fetch(`${config.apiUrl}/posts`, {
-        method: 'POST',
-        body: formData,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "*/*"
+        },
+        body: JSON.stringify(postData),
       });
       
       if (!response.ok) {
@@ -116,7 +126,7 @@ const Home: React.FC = () => {
       
       // Limpiar el formulario
       setPostText('');
-      setPostImage(null);
+      setPostImageUrl('');
       
     } catch (err) {
       console.error('Error al crear el post:', err);
@@ -127,12 +137,10 @@ const Home: React.FC = () => {
   };
 
   /**
-   * Maneja la selección de una imagen para el post
+   * Maneja la entrada de una URL de imagen para el post
    */
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setPostImage(e.target.files[0]);
-    }
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPostImageUrl(e.target.value);
   };
 
   // Formatear fecha relativa (ej: "hace 5 minutos")
@@ -265,46 +273,52 @@ const Home: React.FC = () => {
           />
         </div>
         
-        {/* Sección para subir imagen */}
+        {/* Campo para URL de imagen */}
         <div className="flex items-center space-x-4 mt-3">
           <label className="flex items-center space-x-2 cursor-pointer text-[#3d7b6f] hover:text-[#2d5c53] p-2 rounded-md transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
             </svg>
-            <span>Foto</span>
-            <input 
-              type="file" 
-              onChange={handleImageSelect}
-              accept="image/*"
-              className="hidden" 
-            />
+            <span>Imagen URL</span>
           </label>
-          
-          {/* Previsualización de imagen */}
-          {postImage && (
-            <div className="relative">
-              <img 
-                src={URL.createObjectURL(postImage)} 
-                alt="Vista previa" 
-                className="h-16 w-16 object-cover rounded-md"
-              />
-              <button 
-                type="button"
-                onClick={() => setPostImage(null)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
+          <input 
+            type="text" 
+            value={postImageUrl}
+            onChange={handleImageUrlChange}
+            placeholder="https://ejemplo.com/imagen.jpg"
+            className="flex-1 bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#6cda84]"
+          />
         </div>
+        
+        {/* Previsualización de imagen */}
+        {postImageUrl && (
+          <div className="relative mt-3">
+            <img 
+              src={postImageUrl} 
+              alt="Vista previa" 
+              className="h-24 object-cover rounded-md"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/sample-post-image.svg';
+                setError('No se pudo cargar la imagen. Verifica la URL.');
+              }}
+            />
+            <button 
+              type="button"
+              onClick={() => setPostImageUrl('')}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
         
         {/* Botón de envío */}
         <button 
           type="submit"
-          disabled={(!postText.trim() && !postImage) || isSubmitting}
+          disabled={(!postText.trim() && !postImageUrl) || isSubmitting}
           className="w-full py-2 px-4 mt-4 bg-[#3d7b6f] text-white rounded-md hover:bg-[#2d5c53] transition-colors disabled:opacity-50"
         >
           {isSubmitting ? 'Publicando...' : 'Publicar'}
@@ -402,7 +416,7 @@ const Home: React.FC = () => {
                 className="flex-1 py-1 flex items-center justify-center space-x-2 hover:bg-[#f8ffe5] transition-colors rounded-md mx-1"
                 onClick={() => {
                   // Aquí iría la llamada al backend para dar like
-                   fetch(`/api/publicaciones/${post.id}/like`, { method: 'POST' })
+                   fetch(`/api/posts/${post.id}/like`, { method: 'POST' })
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -469,7 +483,7 @@ const Home: React.FC = () => {
           className="mt-4 w-full py-2 bg-white text-[#3d7b6f] rounded-lg hover:bg-[#f8ffe5] border border-gray-200 transition-colors"
           onClick={() => {
             // Aquí iría la llamada al backend para cargar más posts
-             fetch('/api/publicaciones?page=2')
+             fetch('/api/posts?page=2')
           }}
         >
           Ver más publicaciones

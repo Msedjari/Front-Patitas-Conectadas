@@ -26,7 +26,7 @@ export const config = {
    * Usa la variable de entorno REACT_APP_API_URL si está definida,
    * o usa la URL de desarrollo local, o la ruta relativa en producción
    */
-  apiUrl: import.meta.env.REACT_APP_API_URL || (isDevelopment ? 'http://192.168.251.60:4000' : '/api'),
+  apiUrl: import.meta.env.REACT_APP_API_URL || (isDevelopment ? 'http://localhost:4000' : '/api'),
   
   /**
    * Información básica de la aplicación
