@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 /**
  * Interfaz para el modelo de Post
@@ -42,6 +43,7 @@ interface UserImagesCache {
  * 
  * Características principales:
  * - Formulario para crear nuevas publicaciones con texto e imágenes
+ * - Selector de emojis integrado para enriquecer el contenido
  * - Visualización del feed de publicaciones de la comunidad
  * - Sistema de caché para imágenes de usuarios por IDs
  * - Carga optimizada de datos desde el backend
@@ -67,7 +69,36 @@ const Home: React.FC = () => {
   // Caché para almacenar las imágenes de usuario y evitar peticiones repetidas
   const [userImagesCache, setUserImagesCache] = useState<UserImagesCache>({});
   
+  // Nuevos estados para el selector de emojis
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCommentEmojiPicker, setShowCommentEmojiPicker] = useState<number | null>(null);
+  const [commentText, setCommentText] = useState<Record<number, string>>({});
+  
+  // Referencias para cerrar el selector de emojis cuando se hace clic fuera
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
+  
   const { user } = useAuth();
+
+  // Efecto para manejar clics fuera del selector de emojis
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Cerrar selector de emojis principal
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+      
+      // Cerrar selector de emojis de comentarios
+      if (commentEmojiPickerRef.current && !commentEmojiPickerRef.current.contains(event.target as Node)) {
+        setShowCommentEmojiPicker(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Efecto para cargar los posts al montar el componente
   useEffect(() => {
@@ -244,9 +275,34 @@ const Home: React.FC = () => {
     return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
   };
 
-  // Estado para historias - ahora comentado
-  // const [stories, setStories] = useState<any[]>([]);
-  // const [loadingStories, setLoadingStories] = useState(false);
+  /**
+   * Manejador para cuando se selecciona un emoji en el creador de posts
+   */
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setPostText(prevText => prevText + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+  
+  /**
+   * Manejador para cuando se selecciona un emoji en un comentario
+   */
+  const onCommentEmojiClick = (postId: number, emojiData: EmojiClickData) => {
+    setCommentText(prev => ({
+      ...prev,
+      [postId]: (prev[postId] || '') + emojiData.emoji
+    }));
+    setShowCommentEmojiPicker(null);
+  };
+  
+  /**
+   * Manejador para cambios en el texto de comentario
+   */
+  const handleCommentChange = (postId: number, text: string) => {
+    setCommentText(prev => ({
+      ...prev,
+      [postId]: text
+    }));
+  };
 
   // Obtener historias del backend - ahora comentado
   /*
@@ -344,7 +400,7 @@ const Home: React.FC = () => {
         </div>
       )}
       
-      {/* Formulario para crear post */}
+      {/* Formulario para crear post con emoji picker */}
       <form onSubmit={handlePostSubmit} className="bg-white rounded-lg shadow-sm mb-4 p-4 border border-gray-200">
         <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-200">
           <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
@@ -358,12 +414,37 @@ const Home: React.FC = () => {
               }}
             />
           </div>
-          <textarea
-            value={postText}
-            onChange={(e) => setPostText(e.target.value)}
-            className="flex-1 bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2.5 min-h-[40px] resize-none focus:outline-none focus:ring-1 focus:ring-[#6cda84]"
-            placeholder={`¿Qué estás pensando, ${user?.name?.split(' ')[0] || 'Usuario'}?`}
-          />
+          <div className="flex-1 relative">
+            <textarea
+              value={postText}
+              onChange={(e) => setPostText(e.target.value)}
+              className="w-full bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2.5 min-h-[40px] resize-none focus:outline-none focus:ring-1 focus:ring-[#6cda84]"
+              placeholder={`¿Qué estás pensando, ${user?.name?.split(' ')[0] || 'Usuario'}?`}
+            />
+            <button 
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="absolute right-3 bottom-3 text-[#3d7b6f] hover:text-[#6cda84]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            
+            {/* Emoji Picker para el post */}
+            {showEmojiPicker && (
+              <div className="absolute right-0 z-10 mt-1" ref={emojiPickerRef}>
+                <EmojiPicker
+                  onEmojiClick={onEmojiClick}
+                  theme={Theme.LIGHT}
+                  searchDisabled={false}
+                  skinTonesDisabled
+                  width={300}
+                  height={350}
+                />
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Campo para URL de imagen */}
@@ -485,55 +566,7 @@ const Home: React.FC = () => {
               </div>
             )}
             
-            {/* Estadísticas del post */}
-            <div className="px-4 py-2 flex justify-between items-center text-sm">
-              {post.estadisticas?.likes > 0 && (
-                <div className="flex items-center space-x-1">
-                  <div className="w-5 h-5 rounded-full bg-[#6cda84] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                    </svg>
-                  </div>
-                  <span className="text-[#575350]">{post.estadisticas.likes}</span>
-                </div>
-              )}
-              
-              {post.estadisticas?.comentarios > 0 && (
-                <div>
-                  <span className="text-[#575350]">{post.estadisticas.comentarios} comentarios</span>
-                </div>
-              )}
-            </div>
-            
-            {/* Acciones del post */}
-            <div className="flex border-t border-gray-100 text-sm px-2 py-1">
-              <button 
-                className="flex-1 py-1 flex items-center justify-center space-x-2 hover:bg-[#f8ffe5] transition-colors rounded-md mx-1"
-                onClick={() => {
-                  // Aquí iría la llamada al backend para dar like
-                   fetch(`/api/posts/${post.id}/like`, { method: 'POST' })
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                </svg>
-                <span className="text-[#2a2827]">Me gusta</span>
-              </button>
-              <button className="flex-1 py-1 flex items-center justify-center space-x-2 hover:bg-[#f8ffe5] transition-colors rounded-md mx-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="text-[#2a2827]">Comentar</span>
-              </button>
-              <button className="flex-1 py-1 flex items-center justify-center space-x-2 hover:bg-[#f8ffe5] transition-colors rounded-md mx-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3d7b6f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                <span className="text-[#2a2827]">Compartir</span>
-              </button>
-            </div>
-            
-            {/* Formulario de comentarios */}
+            {/* Formulario de comentarios con emoji picker */}
             <div className="px-4 py-3 border-t border-gray-100">
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-gray-300 overflow-hidden flex-shrink-0">
@@ -547,14 +580,20 @@ const Home: React.FC = () => {
                     }}
                   />
                 </div>
-                <div className="flex-1 flex items-center bg-[#f8ffe5] rounded-full overflow-hidden">
+                <div className="flex-1 flex items-center bg-[#f8ffe5] rounded-full overflow-hidden relative">
                   <input 
                     type="text" 
                     placeholder="Escribe un comentario..." 
                     className="w-full px-4 py-1.5 text-sm focus:outline-none bg-transparent"
+                    value={commentText[post.id] || ''}
+                    onChange={(e) => handleCommentChange(post.id, e.target.value)}
                   />
                   <div className="flex items-center pr-2 space-x-1">
-                    <button className="text-[#3d7b6f] p-1 hover:text-[#6cda84]">
+                    <button 
+                      type="button"
+                      className="text-[#3d7b6f] p-1 hover:text-[#6cda84]"
+                      onClick={() => setShowCommentEmojiPicker(post.id === showCommentEmojiPicker ? null : post.id)}
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
                       </svg>
@@ -565,6 +604,20 @@ const Home: React.FC = () => {
                       </svg>
                     </button>
                   </div>
+                  
+                  {/* Emoji Picker para comentarios */}
+                  {showCommentEmojiPicker === post.id && (
+                    <div className="absolute right-0 bottom-10 z-10" ref={commentEmojiPickerRef}>
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) => onCommentEmojiClick(post.id, emojiData)}
+                        theme={Theme.LIGHT}
+                        searchDisabled={false}
+                        skinTonesDisabled
+                        width={300}
+                        height={350}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -578,7 +631,6 @@ const Home: React.FC = () => {
           className="mt-4 w-full py-2 bg-white text-[#3d7b6f] rounded-lg hover:bg-[#f8ffe5] border border-gray-200 transition-colors"
           onClick={() => {
             // Aquí iría la llamada al backend para cargar más posts
-             fetch('/api/posts?page=2')
           }}
         >
           Ver más publicaciones
