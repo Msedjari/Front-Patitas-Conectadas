@@ -16,6 +16,9 @@ import logoImage from '../../assets/logo.png'; // Importación del logo
  * - Navegación a secciones principales de la aplicación
  * - Acceso al perfil de usuario y menú desplegable
  * - Opciones de inicio/cierre de sesión
+ * 
+ * Nota: Este componente solo se muestra en vista desktop. 
+ * La navegación móvil se maneja con MobileBottomNav.
  */
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -91,7 +94,7 @@ const Navbar: React.FC = () => {
           </Link>
           
           {/* Search bar with icon */}
-          <div className="relative hidden sm:block">
+          <div className="relative">
             <input 
               type="text" 
               placeholder="Buscar en Patitas Conectadas" 
@@ -104,7 +107,7 @@ const Navbar: React.FC = () => {
         </div>
         
         {/* Center section: Main navigation icons */}
-        <div className="hidden md:flex items-center justify-center flex-1">
+        <div className="flex items-center justify-center flex-1">
           <div className="flex items-center justify-center space-x-1 max-w-md mx-auto w-full">
             {/* Home icon */}
             <Link to="/" className="flex-1 px-3 py-2 rounded-md text-[#6cda84] hover:bg-white transition-colors flex justify-center border-b-2 border-[#6cda84]">
@@ -253,20 +256,13 @@ const Navbar: React.FC = () => {
               )}
             </div>
           ) : (
-            // Login and register buttons for non-authenticated users
             <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 border border-[#6cda84] text-[#3d7b6f] rounded-lg hover:bg-[#f8ffe5] transition-colors"
-              >
+              <Link to="/login" className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors">
                 Iniciar sesión
-              </button>
-              <button 
-                onClick={() => navigate('/register')}
-                className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
-              >
+              </Link>
+              <Link to="/register" className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-md hover:bg-[#f8ffe5] transition-colors">
                 Registrarse
-              </button>
+              </Link>
             </div>
           )}
         </div>

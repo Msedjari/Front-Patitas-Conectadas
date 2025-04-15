@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import '../../responsive.css';
 
 /**
  * Interfaz para el modelo de Post
