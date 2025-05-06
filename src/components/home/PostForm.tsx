@@ -24,14 +24,19 @@ const PostForm: React.FC<PostFormProps> = ({
   const [postText, setPostText] = useState('');
   const [postImageUrl, setPostImageUrl] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Comprobar que hay al menos texto o imagen
-    if (!postText.trim() && !postImageUrl) return;
+    // Validar que el contenido del texto no esté vacío, ya que el servidor lo requiere
+    if (!postText.trim()) {
+      setValidationError("El contenido del post no puede estar vacío");
+      return;
+    }
     
+    // El creador ahora se maneja directamente en Home.tsx como creadorId
     const postData: PostData = {
       contenido: postText,
       creador: {
@@ -44,6 +49,9 @@ const PostForm: React.FC<PostFormProps> = ({
     }
     
     try {
+      // Limpiar el error de validación
+      setValidationError(null);
+      
       await onPostSubmit(postData);
       
       // Limpiar el formulario
@@ -68,10 +76,11 @@ const PostForm: React.FC<PostFormProps> = ({
       <div className="flex items-center space-x-3 mb-3 pb-3 border-b border-gray-200">
         <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
           <img 
-            src={getUserImage(userImagesCache, typeof userId === 'number' ? userId : 1)} 
+            src={getUserImage(userImagesCache, userId)} 
             alt="Avatar" 
             className="h-full w-full object-cover"
             onError={(e) => {
+              console.log('Error cargando imagen de usuario en PostForm:', userId);
               const target = e.target as HTMLImageElement;
               target.src = '/default-avatar.svg';
             }}
@@ -80,8 +89,11 @@ const PostForm: React.FC<PostFormProps> = ({
         <div className="flex-1 relative">
           <textarea
             value={postText}
-            onChange={(e) => setPostText(e.target.value)}
-            className="w-full bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2.5 min-h-[40px] resize-none focus:outline-none focus:ring-1 focus:ring-[#6cda84]"
+            onChange={(e) => {
+              setPostText(e.target.value);
+              if (validationError) setValidationError(null);
+            }}
+            className={`w-full bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2.5 min-h-[40px] resize-none focus:outline-none focus:ring-1 ${validationError ? 'ring-red-500 border-red-500' : 'focus:ring-[#6cda84]'}`}
             placeholder={`¿Qué estás pensando, ${userName?.split(' ')[0] || 'Usuario'}?`}
           />
           <button 
@@ -109,6 +121,13 @@ const PostForm: React.FC<PostFormProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Mostrar mensajes de validación si existen */}
+      {validationError && (
+        <div className="mt-1 text-red-600 text-sm font-medium">
+          {validationError}
+        </div>
+      )}
       
       {/* Campo para URL de imagen */}
       <div className="flex items-center space-x-4 mt-3">
@@ -154,7 +173,7 @@ const PostForm: React.FC<PostFormProps> = ({
       {/* Botón de envío */}
       <button 
         type="submit"
-        disabled={(!postText.trim() && !postImageUrl) || isSubmitting}
+        disabled={!postText.trim() || isSubmitting}
         className="w-full py-2 px-4 mt-4 bg-[#3d7b6f] text-white rounded-md hover:bg-[#2d5c53] transition-colors disabled:opacity-50"
       >
         {isSubmitting ? 'Publicando...' : 'Publicar'}
