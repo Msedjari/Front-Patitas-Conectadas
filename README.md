@@ -119,8 +119,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact & Support
 - **Developer**: Msedjari
-- **Project Repository**: [github.com/Msedjari/patitas-conectadas](https://github.com/Msedjari/patitas-conectadas)
-- **Issue Tracker**: [github.com/Msedjari/patitas-conectadas/issues](https://github.com/Msedjari/patitas-conectadas/issues)
+- **Project Repository**: [github.com/Msedjari/patitas-conectadas](https://github.com/Msedjari/Front-Patitas-Conectadas)
 
 ---
 
