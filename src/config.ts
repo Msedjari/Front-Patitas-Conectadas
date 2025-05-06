@@ -17,6 +17,10 @@
 // Usa la variable de entorno DEV proporcionada por Vite
 const isDevelopment = import.meta.env.DEV;
 
+// URLs para diferentes entornos
+const DEV_API_URL = 'http://localhost:4000'; // Usa la URL de desarrollo local
+const PROD_API_URL = '/api'; // Usa la misma ruta base en producción
+
 /**
  * Objeto de configuración principal exportado para uso en toda la aplicación
  */
@@ -24,9 +28,9 @@ export const config = {
   /**
    * URL base para todas las peticiones a la API
    * Usa la variable de entorno REACT_APP_API_URL si está definida,
-   * o usa la URL de desarrollo local, o la ruta relativa en producción
+   * o usa la URL configurada según el entorno
    */
-  apiUrl: import.meta.env.REACT_APP_API_URL || (isDevelopment ? 'http://localhost:4000' : '/api'),
+  apiUrl: import.meta.env.VITE_API_URL || (isDevelopment ? DEV_API_URL : PROD_API_URL),
   
   /**
    * Información básica de la aplicación
