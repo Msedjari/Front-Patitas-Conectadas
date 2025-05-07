@@ -100,24 +100,74 @@ export const createGroup = async (groupData: Group): Promise<Group> => {
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     
+    // Verificar explícitamente que el token exista
+    if (!token) {
+      console.error('No se encontró token de autenticación en localStorage');
+      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+    }
+    
+    // Imprimir los datos que se están enviando para depuración
+    console.log('Creando grupo con datos:', JSON.stringify(groupData, null, 2));
+    console.log('Token de autenticación presente:', !!token);
+    
+    // Verificar que los campos obligatorios estén presentes
+    if (!groupData.nombre || !groupData.descripcion) {
+      console.error('Faltan campos obligatorios para crear un grupo');
+      throw new Error('El nombre y la descripción son obligatorios para crear un grupo.');
+    }
+    
+    // Extraer el ID del creador para usarlo como parámetro de consulta
+    const usuarioId = groupData.creador_id;
+    
+    // Preparar los datos en formato estándar (sin creador_id)
+    const standardData = {
+      nombre: groupData.nombre,
+      descripcion: groupData.descripcion
+    };
+    
+    // Construir la URL con el parámetro de consulta usuarioId
+    const url = usuarioId 
+      ? `${config.apiUrl}/grupos?usuarioId=${usuarioId}` 
+      : `${config.apiUrl}/grupos`;
+    
+    console.log('URL de creación de grupo:', url);
+    
     // Realizar petición POST con los datos del nuevo grupo
-    const response = await fetch(`${config.apiUrl}/grupos`, {
+    let response = await fetch(url, {
       method: 'POST',                           // Método HTTP para crear recursos
       headers: {
         'Authorization': `Bearer ${token}`,     // Token de autenticación
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
       },
-      body: JSON.stringify(groupData),          // Convertimos el objeto a string JSON
+      body: JSON.stringify(standardData),       // Convertimos el objeto a string JSON
     });
+    
+    console.log('Respuesta del servidor:', response.status, response.statusText);
     
     // Verificar si la creación fue exitosa
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Texto de error del servidor:', errorText);
       throw new Error(`Error al crear grupo: ${errorText || response.statusText}`);
     }
     
+    // Capturar la respuesta como texto primero para depuración
+    const responseText = await response.text();
+    console.log('Respuesta del servidor (texto):', responseText);
+    
+    // Intentar parsear la respuesta como JSON
+    let data: Group;
+    try {
+      // Si la respuesta está vacía, usar un objeto vacío como fallback
+      data = responseText ? JSON.parse(responseText) : {} as Group;
+      console.log('Grupo creado exitosamente:', data);
+    } catch (e) {
+      console.error('Error al parsear respuesta JSON:', e);
+      throw new Error('Error al procesar la respuesta del servidor al crear grupo');
+    }
+    
     // Retornar el grupo creado con su ID asignado y otros campos generados
-    return await response.json();
+    return data;
   } catch (error) {
     // Registrar error para debugging
     console.error('Error al crear grupo:', error);
@@ -137,25 +187,56 @@ export const updateGroup = async (id: number, groupData: Partial<Group>): Promis
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     
+    // Verificar explícitamente que el token exista
+    if (!token) {
+      console.error('No se encontró token de autenticación en localStorage');
+      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+    }
+    
+    console.log(`Actualizando grupo con ID ${id}:`, JSON.stringify(groupData, null, 2));
+    
+    // Asegurarse de que solo enviamos nombre y descripción según la API
+    const updateData = {
+      nombre: groupData.nombre,
+      descripcion: groupData.descripcion
+    };
+    
     // Realizar petición PUT para actualizar el recurso
-    // Partial<Group> permite enviar solo los campos que queremos actualizar
     const response = await fetch(`${config.apiUrl}/grupos/${id}`, {
       method: 'PUT',                            // Método HTTP para actualizar recursos
       headers: {
         'Authorization': `Bearer ${token}`,     // Token de autenticación
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
       },
-      body: JSON.stringify(groupData),          // Convertimos los datos parciales a JSON
+      body: JSON.stringify(updateData),          // Convertimos los datos parciales a JSON
     });
+    
+    console.log('Respuesta del servidor:', response.status, response.statusText);
     
     // Verificar si la actualización fue exitosa
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Texto de error del servidor:', errorText);
       throw new Error(`Error al actualizar grupo: ${errorText || response.statusText}`);
     }
     
+    // Capturar la respuesta como texto primero para depuración
+    const responseText = await response.text();
+    console.log('Respuesta del servidor (texto):', responseText);
+    
+    // Intentar parsear la respuesta como JSON
+    let data: Group;
+    try {
+      // Si la respuesta está vacía, usar un objeto vacío como fallback
+      data = responseText ? JSON.parse(responseText) : {} as Group;
+      console.log('Grupo actualizado exitosamente:', data);
+    } catch (e) {
+      console.error('Error al parsear respuesta JSON:', e);
+      throw new Error('Error al procesar la respuesta del servidor al actualizar grupo');
+    }
+    
     // Retornar el grupo con los datos actualizados
-    return await response.json();
+    return data;
   } catch (error) {
     // Registrar error específico con el ID para facilitar debugging
     console.error(`Error al actualizar grupo con ID ${id}:`, error);
@@ -207,26 +288,74 @@ export const joinGroup = async (groupId: number, userId: number): Promise<void> 
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     
-    // Realizar petición POST para unir al usuario al grupo
-    const response = await fetch(`${config.apiUrl}/usuario-grupo/${groupId}`, {
+    // Verificar explícitamente que el token exista
+    if (!token) {
+      console.error('No se encontró token de autenticación en localStorage');
+      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+    }
+    
+    console.log(`Usuario ${userId} intentando unirse al grupo ${groupId}`);
+    
+    // Según la documentación, la ruta es /usuario-grupo
+    const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        usuario_id: userId
+        usuarioId: userId,
+        grupoId: groupId,
+        rol: 'Miembro' // Rol predeterminado para nuevos miembros
       })
     });
+    
+    console.log('Respuesta del servidor:', response.status, response.statusText);
     
     // Verificar si la operación fue exitosa
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Error al unirse al grupo: ${errorText}`);
+      console.error('Texto de error del servidor:', errorText);
+      throw new Error(`Error al unirse al grupo: ${errorText || response.statusText}`);
     }
+    
+    console.log(`Usuario ${userId} se unió exitosamente al grupo ${groupId}`);
   } catch (error) {
     // Registrar error específico para debugging
     console.error(`Error al unirse al grupo con ID ${groupId}:`, error);
     throw error;
+  }
+};
+
+/**
+ * Verifica si el token de autenticación actual es válido
+ * 
+ * @returns Promesa que resuelve a un booleano indicando si el token es válido
+ */
+export const verifyAuthToken = async (): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    if (!token) {
+      console.log('No hay token para verificar');
+      return false;
+    }
+    
+    // Intentamos obtener los grupos como una operación simple para verificar el token
+    const response = await fetch(`${config.apiUrl}/grupos`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.status === 401) {
+      console.log('Token inválido o expirado');
+      return false;
+    }
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Error al verificar el token:', error);
+    return false;
   }
 };

@@ -30,6 +30,12 @@ const GrupoForm: React.FC<GrupoFormProps> = ({
     descripcion: ''
   });
   
+  // Estado para errores de validación
+  const [validationErrors, setValidationErrors] = useState({
+    nombre: '',
+    descripcion: ''
+  });
+  
   // Inicializar formulario con datos si se está editando
   useEffect(() => {
     if (initialData) {
@@ -47,7 +53,29 @@ const GrupoForm: React.FC<GrupoFormProps> = ({
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(formData);
+    
+    // Validar los campos antes de enviar
+    const errors = {
+      nombre: formData.nombre.trim() === '' ? 'El nombre del grupo es obligatorio' : '',
+      descripcion: formData.descripcion.trim() === '' ? 'La descripción es obligatoria' : ''
+    };
+    
+    setValidationErrors(errors);
+    
+    // Si hay errores, no enviar el formulario
+    if (errors.nombre || errors.descripcion) {
+      console.log('Errores de validación:', errors);
+      return;
+    }
+    
+    // Limpiar espacios en blanco
+    const cleanedData = {
+      nombre: formData.nombre.trim(),
+      descripcion: formData.descripcion.trim()
+    };
+    
+    console.log('Enviando datos de grupo:', cleanedData);
+    await onSubmit(cleanedData);
   };
   
   const isEditing = Boolean(initialData?.id);
@@ -69,9 +97,12 @@ const GrupoForm: React.FC<GrupoFormProps> = ({
           value={formData.nombre}
           onChange={handleInputChange}
           required
-          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+          className={`w-full p-2 border ${validationErrors.nombre ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]`}
           placeholder="Nombre del grupo"
         />
+        {validationErrors.nombre && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.nombre}</p>
+        )}
       </div>
       
       <div className="mb-4">
@@ -85,9 +116,12 @@ const GrupoForm: React.FC<GrupoFormProps> = ({
           onChange={handleInputChange}
           required
           rows={4}
-          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+          className={`w-full p-2 border ${validationErrors.descripcion ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]`}
           placeholder="Describe el propósito del grupo"
         ></textarea>
+        {validationErrors.descripcion && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.descripcion}</p>
+        )}
       </div>
       
       <div className="flex justify-end">
