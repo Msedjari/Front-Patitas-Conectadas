@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import GrupoForm from '../components/grupos/GrupoForm';
 import GruposList from '../components/grupos/GruposList';
+import DeleteGrupoDialog from '../components/grupos/DeleteGrupoDialog';
 import { config } from '../config';
 import { 
   Group as Grupo, 
@@ -29,6 +30,9 @@ const Grupos: React.FC = () => {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingGrupo, setEditingGrupo] = useState<Grupo | null>(null);
   const [tokenError, setTokenError] = useState<boolean>(false);
+  // Estado para el diálogo de confirmación de eliminación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [grupoToDelete, setGrupoToDelete] = useState<Grupo | null>(null);
   
   // Cargar grupos al montar el componente
   useEffect(() => {
@@ -180,13 +184,21 @@ const Grupos: React.FC = () => {
     setShowForm(true);
   };
   
-  // Eliminar grupo
-  const handleDelete = async (grupo: Grupo) => {
+  // Mostrar diálogo de confirmación de eliminación
+  const handleShowDeleteDialog = (grupo: Grupo) => {
+    setGrupoToDelete(grupo);
+    setDeleteDialogOpen(true);
+  };
+  
+  // Cerrar diálogo de eliminación
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setGrupoToDelete(null);
+  };
+  
+  // Eliminar grupo después de confirmar
+  const handleConfirmDelete = async (grupo: Grupo) => {
     if (!grupo.id) return;
-    
-    if (!confirm(`¿Estás seguro de eliminar el grupo "${grupo.nombre}"?`)) {
-      return;
-    }
     
     try {
       setLoading(true);
@@ -197,6 +209,10 @@ const Grupos: React.FC = () => {
       // Eliminar del estado
       setGrupos(grupos.filter(g => g.id !== grupo.id));
       setError(null);
+      
+      // Cerrar el diálogo
+      setDeleteDialogOpen(false);
+      setGrupoToDelete(null);
     } catch (err) {
       console.error('Error al eliminar grupo:', err);
       setError('No se pudo eliminar el grupo. Por favor, intenta de nuevo.');
@@ -326,10 +342,19 @@ const Grupos: React.FC = () => {
         <GruposList 
           grupos={grupos}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={handleShowDeleteDialog}
           onJoin={handleJoinGroup}
           formatDate={formatDate}
           onCreateNew={() => setShowForm(true)}
+        />
+        
+        {/* Diálogo de confirmación para eliminar grupo */}
+        <DeleteGrupoDialog
+          isOpen={deleteDialogOpen}
+          grupo={grupoToDelete}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={loading}
         />
       </div>
     </div>
