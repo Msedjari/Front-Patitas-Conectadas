@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../App.css';
-import logoImage from '../../assets/logo.png';
-import { config } from '../../config';
+import AuthLayout from './AuthLayout';
+import FormInput from './FormInput';
+import FormError from './FormError';
+import AuthButton from './AuthButton';
 
 /**
  * Componente de inicio de sesión
  * Maneja la autenticación de usuarios y redirige al inicio tras un login exitoso
+ * Si el usuario fue redirigido desde otra página por falta de autenticación, 
+ * lo devuelve a esa página después del login.
  */
 const Login = () => {
   // Estado para los datos del formulario
@@ -23,6 +27,10 @@ const Login = () => {
   // Obtener función de login del contexto de autenticación
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Obtener la ruta a la que el usuario intentaba acceder antes de ser redirigido al login
+  const from = location.state?.from || '/';
 
   /**
    * Maneja los cambios en los campos del formulario
@@ -54,15 +62,11 @@ const Login = () => {
       }
       
       // Llamar a la función login desde el contexto de autenticación
-      const success = await login(formData.correo, formData.contrasena);
+      await login(formData.correo, formData.contrasena);
       
-      if (success) {
-        console.log('Login exitoso, redirigiendo a inicio');
-        navigate('/');
-      } else {
-        console.error('Login falló, pero no lanzó excepción');
-        setError('Credenciales inválidas. Por favor, intente nuevamente.');
-      }
+      // Si llegamos a este punto, el login fue exitoso
+      console.log('Login exitoso, redirigiendo a:', from);
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Error en componente Login:', err);
       if (err instanceof Error) {
@@ -90,111 +94,73 @@ const Login = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 min-h-screen flex items-center bg-[#f8ffe5]">
-      <div className="max-w-6xl mx-auto flex flex-wrap shadow-lg rounded-xl overflow-hidden">
-        {/* Logo on the left - col-6 */}
-        <div className="w-full md:w-1/2 flex justify-center items-center p-8 bg-[#3d7b6f]">
-          <div className="text-center">
-            <img 
-              src={logoImage} 
-              alt="Logo" 
-              className="w-500 h-500 mx-auto" 
-              onClick={useDevLogin} // Funcionalidad oculta para facilitar testing
+    <AuthLayout onLogoClick={useDevLogin}>
+      <h2 className="text-2xl font-bold mb-10 text-[#2a2827]">Iniciar Sesión</h2>
+      
+      <FormError message={error} />
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormInput
+          id="correo"
+          name="correo"
+          type="text"
+          label="Correo electrónico"
+          value={formData.correo}
+          onChange={handleChange}
+          placeholder="Ingrese su correo o usuario"
+        />
+        
+        <FormInput
+          id="contrasena"
+          name="contrasena"
+          type="password"
+          label="Contraseña"
+          value={formData.contrasena}
+          onChange={handleChange}
+          placeholder="Ingrese su contraseña"
+        />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              className="h-4 w-4 text-[#6cda84] focus:ring-[#6cda84] border-[#2a2827]/30 rounded bg-white"
             />
-            <h1 className="text-white text-4xl font-bold mt-6">patitas</h1>
-            <p className="text-[#f8ffe5] mt-2 text-lg">Conectando vidas, una patita a la vez</p>
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-[#2a2827] text-left">
+              Recordarme
+            </label>
           </div>
         </div>
 
-        {/* Form on the right - col-6 */}
-        <div className="w-full form-container md:w-1/2 bg-white p-8">
-          <h2 className="text-2xl font-bold mb-6 text-[#2a2827] mb-10">Iniciar Sesión</h2>
-          
-          {error && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
-              <p>{error}</p>
-            </div>
-          )}
-          
-          {/* Info panel en modo desarrollo - Eliminado por solicitud del usuario */}
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="correo" className="block text-sm font-medium text-[#2a2827] mb-2 text-left">
-                Correo electrónico 
-              </label>
-              <input
-                id="correo"
-                name="correo"
-                type="text"
-                required
-                className="w-full px-3 py-2 border border-[#2a2827]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2e82dc] focus:border-[#2e82dc] transition-all bg-white"
-                placeholder="Ingrese su correo o usuario"
-                value={formData.correo}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="contrasena" className="block text-sm font-medium text-[#2a2827] mb-2 text-left">
-                Contraseña
-              </label>
-              <input
-                id="contrasena"
-                name="contrasena"
-                type="password"
-                required
-                className="w-full px-3 py-2 border border-[#2a2827]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2e82dc] focus:border-[#2e82dc] transition-all bg-white"
-                placeholder="Ingrese su contraseña"
-                value={formData.contrasena}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-[#6cda84] focus:ring-[#6cda84] border-[#2a2827]/30 rounded bg-white"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-[#2a2827] text-left">
-                  Recordarme
-                </label>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-[#3d7b6f] hover:bg-[#2d5c53] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3d7b6f] transition-colors"
-            >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-            
-            <div className="text-center">
-              <span className="text-[#2a2827]">¿No tienes una cuenta? </span>
-            </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                className="b1 justify-center items-center font-medium" 
-                onClick={() => navigate('/register')}
-              >
-                Regístrate ahora
-              </button>
-            </div>
-          </form>
-          
-          <div className="mt-6 text-center pt-4 border-t border-[#2a2827]/10">
-            <p className="text-sm text-[#2a2827]/80">
-              <strong className="font-semibold">¿Eres una organización?</strong> Crea una página para tu refugio de animales.
-            </p>
-          </div>
+        <AuthButton
+          type="submit"
+          disabled={isLoading}
+          primary={true}
+        >
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+        </AuthButton>
+        
+        <div className="text-center">
+          <span className="text-[#2a2827]">¿No tienes una cuenta? </span>
         </div>
+        <div className="flex justify-center">
+          <AuthButton
+            primary={false}
+            onClick={() => navigate('/register')}
+          >
+            Regístrate ahora
+          </AuthButton>
+        </div>
+      </form>
+      
+      <div className="mt-6 text-center pt-4 border-t border-[#2a2827]/10">
+        <p className="text-sm text-[#2a2827]/80">
+          <strong className="font-semibold">¿Eres una organización?</strong> Crea una página para tu refugio de animales.
+        </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 
