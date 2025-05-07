@@ -32,12 +32,19 @@ export interface Group {
  */
 export const fetchGroups = async (): Promise<Group[]> => {
   try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     // Realizar petición GET a la API de grupos
-    const response = await fetch(`${config.apiUrl}/grupos`);
+    const response = await fetch(`${config.apiUrl}/grupos`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     // Verificar si la respuesta fue exitosa (código 2xx)
     if (!response.ok) {
-      throw new Error(`Error al obtener grupos: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Error al obtener grupos: ${errorText || response.statusText}`);
     }
     
     // Parsear y retornar los datos JSON como array de grupos
@@ -58,12 +65,19 @@ export const fetchGroups = async (): Promise<Group[]> => {
  */
 export const fetchGroupById = async (id: number): Promise<Group> => {
   try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     // Realizar petición GET a la API con el ID específico
-    const response = await fetch(`${config.apiUrl}/grupos/${id}`);
+    const response = await fetch(`${config.apiUrl}/grupos/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     // Verificar si la respuesta fue exitosa
     if (!response.ok) {
-      throw new Error(`Error al obtener grupo: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Error al obtener grupo: ${errorText || response.statusText}`);
     }
     
     // Parsear y retornar los datos JSON como objeto grupo
@@ -84,10 +98,13 @@ export const fetchGroupById = async (id: number): Promise<Group> => {
  */
 export const createGroup = async (groupData: Group): Promise<Group> => {
   try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     // Realizar petición POST con los datos del nuevo grupo
     const response = await fetch(`${config.apiUrl}/grupos`, {
       method: 'POST',                           // Método HTTP para crear recursos
       headers: {
+        'Authorization': `Bearer ${token}`,     // Token de autenticación
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
       },
       body: JSON.stringify(groupData),          // Convertimos el objeto a string JSON
@@ -95,7 +112,8 @@ export const createGroup = async (groupData: Group): Promise<Group> => {
     
     // Verificar si la creación fue exitosa
     if (!response.ok) {
-      throw new Error(`Error al crear grupo: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Error al crear grupo: ${errorText || response.statusText}`);
     }
     
     // Retornar el grupo creado con su ID asignado y otros campos generados
@@ -117,11 +135,14 @@ export const createGroup = async (groupData: Group): Promise<Group> => {
  */
 export const updateGroup = async (id: number, groupData: Partial<Group>): Promise<Group> => {
   try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     // Realizar petición PUT para actualizar el recurso
     // Partial<Group> permite enviar solo los campos que queremos actualizar
     const response = await fetch(`${config.apiUrl}/grupos/${id}`, {
       method: 'PUT',                            // Método HTTP para actualizar recursos
       headers: {
+        'Authorization': `Bearer ${token}`,     // Token de autenticación
         'Content-Type': 'application/json',     // Indicamos que enviamos JSON
       },
       body: JSON.stringify(groupData),          // Convertimos los datos parciales a JSON
@@ -129,7 +150,8 @@ export const updateGroup = async (id: number, groupData: Partial<Group>): Promis
     
     // Verificar si la actualización fue exitosa
     if (!response.ok) {
-      throw new Error(`Error al actualizar grupo: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Error al actualizar grupo: ${errorText || response.statusText}`);
     }
     
     // Retornar el grupo con los datos actualizados
@@ -150,19 +172,61 @@ export const updateGroup = async (id: number, groupData: Partial<Group>): Promis
  */
 export const deleteGroup = async (id: number): Promise<void> => {
   try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     // Realizar petición DELETE para eliminar el recurso
     const response = await fetch(`${config.apiUrl}/grupos/${id}`, {
       method: 'DELETE',                         // Método HTTP para eliminar recursos
+      headers: {
+        'Authorization': `Bearer ${token}`      // Token de autenticación
+      }
     });
     
     // Verificar si la eliminación fue exitosa
     if (!response.ok) {
-      throw new Error(`Error al eliminar grupo: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Error al eliminar grupo: ${errorText || response.statusText}`);
     }
     // No retornamos datos ya que el recurso ha sido eliminado
   } catch (error) {
     // Registrar error específico con el ID para facilitar debugging
     console.error(`Error al eliminar grupo con ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Une a un usuario a un grupo específico
+ * 
+ * @param groupId - ID del grupo al que el usuario quiere unirse
+ * @param userId - ID del usuario que se une al grupo
+ * @returns Promesa que se resuelve cuando la operación es exitosa
+ * @throws Error si la operación falla
+ */
+export const joinGroup = async (groupId: number, userId: number): Promise<void> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    // Realizar petición POST para unir al usuario al grupo
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${groupId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        usuario_id: userId
+      })
+    });
+    
+    // Verificar si la operación fue exitosa
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al unirse al grupo: ${errorText}`);
+    }
+  } catch (error) {
+    // Registrar error específico para debugging
+    console.error(`Error al unirse al grupo con ID ${groupId}:`, error);
     throw error;
   }
 };
