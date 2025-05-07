@@ -28,8 +28,8 @@ import { config } from '../config';
 export interface Profile {
   id?: number;                // Identificador único del perfil (opcional para creación)
   usuario_id: number;         // ID del usuario al que pertenece el perfil (campo obligatorio)
-  descripcion?: string;       // Descripción o biografía del usuario
-  fecha_nacimiento?: string;  // Fecha de nacimiento en formato ISO
+  descripcion: string;        // Descripción o biografía del usuario
+  fecha_nacimiento: string;   // Fecha de nacimiento en formato ISO
   img?: string;               // URL de la imagen de perfil
   fecha_creacion?: string;    // Fecha de creación del perfil (generada por el servidor)
   intereses?: string[];       // Lista de intereses o tags del usuario
@@ -219,48 +219,95 @@ export const deleteProfile = async (id: number, headers?: CustomHeaders): Promis
  * @returns Promesa que resuelve al perfil del usuario actual
  * @throws Error si no se puede obtener ni crear el perfil
  */
-export const fetchCurrentUserProfile = async (userId: number, headers?: CustomHeaders): Promise<Profile> => {
+export const fetchCurrentUserProfile = async (userId: number): Promise<Profile> => {
   try {
-    // Logging para debugging
-    console.log(`Intentando obtener perfil para usuario: ${userId}`);
-    
-    // De acuerdo a la documentación, la ruta correcta es /usuarios/{id}/perfiles
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
     const response = await fetch(`${config.apiUrl}/usuarios/${userId}/perfiles`, {
-      headers: headers  // Incluir headers si fueron proporcionados (generalmente token)
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-    
-    console.log('Respuesta status:', response.status);
-    
-    // Verificar la respuesta
+
     if (!response.ok) {
       if (response.status === 404) {
-        // Si no existe un perfil para este usuario, crear uno nuevo
-        console.log('Perfil no encontrado, intentando crear uno nuevo');
-        
-        // Preparar datos mínimos para un nuevo perfil
-        const nuevoPerfilData: Profile = {
-          usuario_id: userId,        // ID del usuario al que pertenecerá
-          descripcion: '',           // Descripción vacía inicial
-          fecha_nacimiento: '',      // Sin fecha de nacimiento inicial
-          intereses: [],             // Sin intereses iniciales
-        };
-        
-        // Crear el nuevo perfil usando la función de creación
-        return await createProfile(nuevoPerfilData, headers);
+        throw new Error('Perfil no encontrado');
       }
-      
-      // Si hay otro tipo de error, obtener el texto de error y lanzar excepción
-      const errorText = await response.text();
-      throw new Error(`Error al obtener perfil de usuario (${response.status}): ${errorText || response.statusText}`);
+      throw new Error(`Error al obtener perfil: ${response.statusText}`);
     }
-    
-    // Si todo va bien, parsear y retornar el perfil encontrado
-    const data = await response.json();
-    console.log('Datos de perfil recibidos:', data);
-    return data;
+
+    return await response.json();
   } catch (error) {
-    // Registrar error específico para debugging
-    console.error(`Error al obtener perfil del usuario ${userId}:`, error);
+    console.error('Error en fetchCurrentUserProfile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Actualiza el perfil de un usuario
+ * @param userId - ID del usuario
+ * @param profileData - Datos actualizados del perfil
+ */
+export const updateProfile = async (userId: number, profileData: Partial<Profile>): Promise<Profile> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
+    const response = await fetch(`${config.apiUrl}/usuarios/${userId}/perfiles`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...profileData,
+        usuario_id: userId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al actualizar perfil: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en updateProfile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Crea un perfil para un usuario
+ * @param profileData - Datos del perfil a crear
+ */
+export const createProfile = async (profileData: Profile): Promise<Profile> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
+    const response = await fetch(`${config.apiUrl}/perfiles`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(profileData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al crear perfil: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error al crear perfil:', error);
     throw error;
   }
 };
