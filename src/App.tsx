@@ -11,28 +11,131 @@
  * comparten un layout común que incluye navegación, barras laterales y otros
  * elementos de UI persistentes.
  */
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
-import Home from './views/Home';
+import Home from './views/home/Home';
 import Perfil from './components/profile/Perfil';
+import Eventos from './views/Eventos';
+import Grupos from './views/Grupos';
+import Amigos from './views/Amigos';
+import Guardados from './views/Guardados';
+import { UserProvider } from './context/UserContext';
 
 /**
- * Componente que protege las rutas que requieren autenticación
- * DESACTIVADO TEMPORALMENTE: Ahora permite acceder a todas las rutas sin autenticación
- * para facilitar el desarrollo
- * 
- * @param children - Componentes hijos a renderizar si el usuario está autenticado
- * @returns Los componentes hijos o redirige a la página de login
+ * Componente Error Boundary para capturar errores en la aplicación
+ * Evita que toda la aplicación falle por un error en un componente
  */
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // const { isAuthenticated } = useAuth();
-  // return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    // Actualiza el estado para que el siguiente renderizado muestre la UI alternativa
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // También puedes registrar el error en un servicio de reporte de errores
+    console.error('Error capturado por ErrorBoundary:', error, errorInfo);
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[rgb(252, 255, 243)]">
+          <div className="max-w-md p-6 bg-white rounded-lg shadow-md border border-red-200">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">Algo salió mal</h2>
+            <p className="text-gray-700 mb-4">
+              Lo sentimos, ha ocurrido un error en la aplicación. Intenta recargar la página.
+            </p>
+            {this.state.error && (
+              <div className="p-3 bg-red-50 rounded mb-4 text-sm text-red-800 overflow-auto">
+                {this.state.error.toString()}
+              </div>
+            )}
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-[#6cda84] text-white rounded hover:bg-[#5bc073] transition-colors"
+            >
+              Recargar página
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+/**
+ * Componente de carga que se muestra mientras la aplicación se inicializa
+ */
+const LoadingScreen = () => (
+  <div className="flex items-center justify-center min-h-screen bg-[rgb(252, 255, 243)]">
+    <div className="flex flex-col items-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[#6cda84]"></div>
+      <p className="mt-4 text-lg text-[#3d7b6f]">Cargando Patitas Conectadas...</p>
+    </div>
+  </div>
+);
+
+/**
+ * Componente interno que renderiza las rutas una vez que la autenticación está lista
+ */
+const AppRoutes = () => {
+  const { isLoading } = useAuth();
   
-  // Comentado temporalmente para desarrollo - permite acceso sin autenticación
-  return <>{children}</>;
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+  
+  return (
+    <Routes>
+      {/* Rutas públicas - accesibles sin autenticación */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      
+      {/* Rutas protegidas que requieren autenticación */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            {/* MainLayout proporciona la estructura común para todas las páginas autenticadas */}
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        {/* Rutas anidadas dentro del layout principal */}
+        <Route index element={<Home />} /> {/* Ruta principal/feed */}
+        <Route path="perfil" element={<Perfil />} /> {/* Perfil del usuario */}
+        <Route path="grupos" element={<Grupos />} />
+        <Route path="eventos" element={<Eventos />} />
+        <Route path="patitas" element={<div>Patitas conectadas (En desarrollo)</div>} />
+        <Route path="amigos" element={<Amigos />} />
+        <Route path="guardados" element={<Guardados />} />
+      </Route>
+      
+      {/* Redirección para rutas no encontradas */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 /**
@@ -53,41 +156,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
  */
 function App() {
   return (
-    // Provee el contexto de autenticación a toda la aplicación
-    <AuthProvider>
-      {/* Configura el enrutador para toda la aplicación */}
-      <Router>
-        <Routes>
-          {/* Rutas públicas - accesibles sin autenticación */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* 
-            Rutas protegidas que requieren autenticación
-            (Protección temporalmente desactivada para desarrollo)
-          */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                {/* MainLayout proporciona la estructura común para todas las páginas autenticadas */}
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Rutas anidadas dentro del layout principal */}
-            <Route index element={<Home />} /> {/* Ruta principal/feed */}
-            <Route path="perfil" element={<Perfil />} /> {/* Perfil del usuario */}
-            <Route path="protectoras" element={<div>Protectoras (En desarrollo)</div>} />
-            <Route path="grupos" element={<div>Grupos (En desarrollo)</div>} />
-            <Route path="eventos" element={<div>Eventos (En desarrollo)</div>} />
-            <Route path="patitas" element={<div>Patitas conectadas (En desarrollo)</div>} />
-            <Route path="amigos" element={<div>Amigos (En desarrollo)</div>} />
-            <Route path="guardados" element={<div>Guardados (En desarrollo)</div>} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+    // Envolvemos toda la aplicación en un ErrorBoundary para capturar errores
+    <ErrorBoundary>
+      {/* Provee el contexto de autenticación a toda la aplicación */}
+      <AuthProvider>
+        {/* Proporciona el contexto de usuario para acceso a datos de usuarios */}
+        <UserProvider>
+          {/* Configura el enrutador para toda la aplicación */}
+          <Router>
+            <AppRoutes />
+          </Router>
+        </UserProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
