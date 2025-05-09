@@ -1,23 +1,19 @@
 import React from 'react';
 
-interface AmigoCardProps {
-  amigo: {
+export interface AmigoCardProps {
     id: number;
     nombre: string;
     apellido?: string;
     img?: string;
     email?: string;
-  };
   onRemove: (amigo: any) => void;
 }
 
 /**
  * Componente para mostrar la información de un amigo en formato de tarjeta
  */
-const AmigoCard: React.FC<AmigoCardProps> = ({
-  amigo,
-  onRemove
-}) => {
+const AmigoCard: React.FC<AmigoCardProps> = (amigo) => {
+  const { onRemove } = amigo;
   return (
     <div className="flex items-center bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
       <div className="h-16 w-16 rounded-full bg-gray-300 overflow-hidden mr-4 flex-shrink-0">
@@ -65,4 +61,4 @@ const AmigoCard: React.FC<AmigoCardProps> = ({
   );
 };
 
-export default AmigoCard; 
+export default AmigoCard;
