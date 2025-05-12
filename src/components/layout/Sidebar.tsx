@@ -1,6 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getUserImage } from '../home/HomeUtils';
+import { config } from '../../config';
 
 /**
  * Componente de Barra Lateral Izquierda
@@ -16,9 +18,43 @@ import { useAuth } from '../../context/AuthContext';
  * - Implementa iconos visuales para cada sección
  */
 const Sidebar: React.FC = () => {
-  // En una aplicación real, usaríamos el contexto de autenticación
   const { user } = useAuth();
-  
+  const location = useLocation();
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
+
+  // Efecto para cargar la imagen del usuario
+  useEffect(() => {
+    if (user?.id) {
+      const fetchUserImage = async () => {
+        try {
+          const token = localStorage.getItem(config.session.tokenKey);
+          if (!token) return;
+
+          // Intentar obtener la imagen del perfil
+          const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData && profileData.img) {
+              setUserImagesCache(prev => ({
+                ...prev,
+                [user.id]: profileData.img
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar imagen de usuario:', error);
+        }
+      };
+
+      fetchUserImage();
+    }
+  }, [user?.id]);
+
   // Elementos de la barra lateral con sus iconos y rutas
   const sidebarItems = [
     { name: 'Amigos', icon: 'users', path: '/amigos' },
@@ -83,7 +119,7 @@ const Sidebar: React.FC = () => {
         <Link to="/perfil" className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white mb-2">
           <div className="h-9 w-9 rounded-full bg-gray-300 overflow-hidden">
             <img 
-              src={user.profileImage || "/default-avatar.svg"} 
+              src={getUserImage(userImagesCache, user.id)} 
               alt={user.name || "Usuario"} 
               className="h-full w-full object-cover"
               onError={(e) => {

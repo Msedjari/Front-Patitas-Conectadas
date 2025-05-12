@@ -2,6 +2,8 @@
  * Utility functions for home components
  */
 
+import { config } from '../../config';
+
 /**
  * Formats relative time from a date string (e.g. "hace 5 minutos")
  */
@@ -58,9 +60,18 @@ export const getUserImage = (userImagesCache: Record<number, string>, userId?: n
   // Registrar para depuración
   console.log(`getUserImage: Buscando imagen para usuario ${numericUserId} - Resultado: ${cachedImage || 'no encontrada'}`);
   
-  // Si hay una URL de imagen cacheada que parece válida, la devolvemos
-  if (cachedImage && (cachedImage.startsWith('http') || cachedImage.startsWith('/'))) {
-    return cachedImage;
+  // Si hay una URL de imagen cacheada
+  if (cachedImage) {
+    // Si ya es una URL completa (http o https), la devolvemos tal cual
+    if (cachedImage.startsWith('http')) {
+      return cachedImage;
+    }
+    // Si es una ruta relativa que no empieza con /, construir la URL completa
+    if (!cachedImage.startsWith('/')) {
+      return `${config.apiUrl}/uploads/${cachedImage}`;
+    }
+    // Si es una ruta que empieza con /, construir la URL completa
+    return `${config.apiUrl}${cachedImage}`;
   }
   
   // Retornamos la imagen predeterminada si no hay una válida en el caché

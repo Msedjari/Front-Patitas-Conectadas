@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
 import logoImage from '../../assets/logo.png'; // Importación del logo
+import { getUserImage } from '../home/HomeUtils';
 
 /**
  * Navbar Component
@@ -23,11 +24,13 @@ import logoImage from '../../assets/logo.png'; // Importación del logo
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const location = useLocation();
   
   // State to control user menu dropdown visibility
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // State for unread notification count - ahora comentado
   // const [notificationCount, setNotificationCount] = useState(0);
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   /**
@@ -53,6 +56,39 @@ const Navbar: React.FC = () => {
     }
   }, [user]);
   */
+  
+  // Efecto para cargar la imagen del usuario
+  useEffect(() => {
+    if (user?.id) {
+      const fetchUserImage = async () => {
+        try {
+          const token = localStorage.getItem(config.session.tokenKey);
+          if (!token) return;
+
+          // Intentar obtener la imagen del perfil
+          const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData && profileData.img) {
+              setUserImagesCache(prev => ({
+                ...prev,
+                [user.id]: profileData.img
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar imagen de usuario:', error);
+        }
+      };
+
+      fetchUserImage();
+    }
+  }, [user?.id]);
   
   // Cerrar el menú desplegable al hacer clic fuera de él
   useEffect(() => {
@@ -176,7 +212,7 @@ const Navbar: React.FC = () => {
               >
                 <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden border-2 border-[#6cda84]">
                   <img 
-                    src={user.img || user.profileImage || "/default-avatar.svg"} 
+                    src={getUserImage(userImagesCache, user.id)} 
                     alt={user.nombre || user.name || "Usuario"} 
                     className="h-full w-full object-cover"
                     onError={(e) => {
@@ -195,7 +231,7 @@ const Navbar: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
                         <img 
-                          src={user.img || user.profileImage || "/default-avatar.svg"} 
+                          src={getUserImage(userImagesCache, user.id)} 
                           alt={user.nombre || user.name || "Usuario"} 
                           className="h-full w-full object-cover"
                           onError={(e) => {

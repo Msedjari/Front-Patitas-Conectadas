@@ -162,7 +162,7 @@ const Home: React.FC = () => {
       
       for (const userId of idsToFetch) {
         try {
-          // Intentamos obtener los datos básicos del usuario primero, ya que según la API es lo que está disponible
+          // Intentamos obtener los datos básicos del usuario primero
           const userResponse = await fetch(`${config.apiUrl}/usuarios/${userId}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -175,8 +175,12 @@ const Home: React.FC = () => {
             
             // Verificar si el usuario tiene una imagen en los datos básicos
             if (userData && userData.img) {
-              newCache[userId] = userData.img;
-              console.log(`Imagen obtenida para usuario ${userId}:`, userData.img);
+              // Almacenar solo la ruta relativa en el caché
+              const relativePath = userData.img.includes(config.apiUrl) 
+                ? userData.img.replace(`${config.apiUrl}/uploads/`, '')
+                : userData.img;
+              newCache[userId] = relativePath;
+              console.log(`Imagen obtenida para usuario ${userId}:`, relativePath);
             } else {
               // Si no hay imagen en los datos básicos, intentamos buscar en el perfil
               console.log(`Buscando perfil para usuario ${userId}`);
@@ -192,8 +196,12 @@ const Home: React.FC = () => {
                 console.log(`Datos de perfil para usuario ${userId}:`, profileData);
                 
                 if (profileData && profileData.img) {
-                  newCache[userId] = profileData.img;
-                  console.log(`Imagen de perfil obtenida para usuario ${userId}:`, profileData.img);
+                  // Almacenar solo la ruta relativa en el caché
+                  const relativePath = profileData.img.includes(config.apiUrl)
+                    ? profileData.img.replace(`${config.apiUrl}/uploads/`, '')
+                    : profileData.img;
+                  newCache[userId] = relativePath;
+                  console.log(`Imagen de perfil obtenida para usuario ${userId}:`, relativePath);
                 } else {
                   console.log(`No se encontró imagen para usuario ${userId}, usando imagen por defecto`);
                   newCache[userId] = '/default-avatar.svg';
