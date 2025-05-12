@@ -6,6 +6,7 @@ import PostHeader from './PostHeader';
 import PostContent from './PostContent';
 import CommentsButton from './CommentsButton';
 import CommentsSection from './CommentsSection';
+import { config } from '../../config';
 
 interface PostItemProps {
   post: Post;
@@ -31,6 +32,8 @@ const PostItem: React.FC<PostItemProps> = ({
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentJustSubmitted, setCommentJustSubmitted] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Información del creador (puede venir directamente en el post o en el objeto creador)
   const creadorId = post.creadorId || post.creador?.id;
@@ -122,7 +125,33 @@ const PostItem: React.FC<PostItemProps> = ({
       setSubmittingComment(false);
     }
   };
-  
+
+  // Función para eliminar el post
+  const handleDeletePost = async () => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este post? Esta acción no se puede deshacer.')) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const token = localStorage.getItem(config.session.tokenKey);
+      const response = await fetch(`${config.apiUrl}/posts/${post.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'No se pudo eliminar el post');
+      }
+      // Opcional: recargar la página o quitar el post del estado global
+      window.location.reload();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Error desconocido al eliminar el post');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
       {/* Cabecera del post - Información del autor */}
@@ -134,6 +163,22 @@ const PostItem: React.FC<PostItemProps> = ({
         userImagesCache={userImagesCache}
         postId={post.id}
       />
+      
+      {/* Botón eliminar solo si el post es del usuario actual */}
+      {Number(userId) === Number(creadorId) && (
+        <div className="flex justify-end px-4 pt-2">
+          <button
+            className="text-red-600 hover:text-white border border-red-600 hover:bg-red-600 font-semibold py-1 px-3 rounded transition disabled:opacity-50"
+            onClick={handleDeletePost}
+            disabled={deleting}
+          >
+            {deleting ? 'Eliminando...' : 'Eliminar'}
+          </button>
+        </div>
+      )}
+      {deleteError && (
+        <div className="text-red-600 text-sm px-4 pb-2">{deleteError}</div>
+      )}
       
       {/* Contenido del post - Texto e imagen */}
       <PostContent 

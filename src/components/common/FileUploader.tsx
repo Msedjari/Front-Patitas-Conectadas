@@ -7,6 +7,11 @@ interface FileUploaderProps {
   additionalData?: Record<string, string>;
   onUploaded: (url: string) => void;
   onError: (error: string) => void;
+  disabled?: boolean;
+  disabledMessage?: string;
+  onUploadStart?: () => void;
+  returnFullUrl?: boolean;
+  sendAdditionalData?: boolean;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({
@@ -14,7 +19,12 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   method,
   additionalData = {},
   onUploaded,
-  onError
+  onError,
+  disabled = false,
+  disabledMessage = 'No se puede subir archivos en este momento',
+  onUploadStart,
+  returnFullUrl = false,
+  sendAdditionalData = true
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +41,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -47,15 +59,18 @@ const FileUploader: React.FC<FileUploaderProps> = ({
     }
 
     setIsUploading(true);
+    onUploadStart?.();
     const formData = new FormData();
 
     // Agregar el archivo al FormData
     formData.append('imagen', file);
 
-    // Agregar datos adicionales al FormData
-    Object.entries(additionalData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+    // Agregar datos adicionales al FormData solo si sendAdditionalData es true
+    if (sendAdditionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+    }
 
     try {
       console.log('Enviando archivo a:', `${config.apiUrl}${endpoint}`);
@@ -88,8 +103,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         throw new Error('No se recibió la ruta de la imagen en la respuesta');
       }
 
-      // Construir la URL completa de la imagen
-      const imageUrl = `${config.apiUrl}/uploads/${responseData.img}`;
+      // Construir la URL según la configuración
+      const imageUrl = returnFullUrl 
+        ? `${config.apiUrl}/uploads/${responseData.img}`
+        : responseData.img;
+      
       console.log('URL de la imagen construida:', imageUrl);
 
       onUploaded(imageUrl);
@@ -107,23 +125,32 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   return (
-    <div>
+    <div className="relative">
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
         accept="image/*"
         style={{ display: 'none' }}
+        disabled={disabled || isUploading}
       />
       <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isUploading}
-        className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] disabled:opacity-50"
+        onClick={() => !disabled && fileInputRef.current?.click()}
+        disabled={disabled || isUploading}
+        className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] disabled:opacity-50 disabled:cursor-not-allowed relative group"
       >
         {isUploading ? 'Subiendo...' : 'Subir foto'}
       </button>
+      
+      {/* Tooltip para mostrar el mensaje cuando está deshabilitado */}
+      {disabled && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          {disabledMessage}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default FileUploader; 
+export default FileUploader; <main class="max-w-[680px] mx-auto"></main>

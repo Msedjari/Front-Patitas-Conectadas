@@ -46,6 +46,7 @@ const AppRoutes: React.FC = () => {
         {/* Rutas anidadas dentro del layout principal */}
         <Route index element={<Home />} /> {/* Ruta principal/feed */}
         <Route path="perfil" element={<Perfil />} /> {/* Perfil del usuario */}
+        <Route path="perfil/:id" element={<Perfil />} /> {/* Perfil de otros usuarios */}
         <Route path="protectoras" element={<Protectoras />} />
         <Route path="grupos" element={<Grupos />} />
         <Route path="eventos" element={<Eventos />} />

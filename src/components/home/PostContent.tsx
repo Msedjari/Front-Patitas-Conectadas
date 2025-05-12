@@ -1,4 +1,5 @@
 import React from 'react';
+import { config } from '../../config';
 
 interface PostContentProps {
   contenido: string;
@@ -10,6 +11,9 @@ interface PostContentProps {
  * Componente para mostrar el contenido principal de un post
  */
 const PostContent: React.FC<PostContentProps> = ({ contenido, imagen, postId }) => {
+  // Construir la URL completa de la imagen si existe
+  const imageUrl = imagen ? (imagen.startsWith('http') ? imagen : `${config.apiUrl}/uploads/${imagen}`) : null;
+
   return (
     <>
       {/* Texto del post */}
@@ -18,14 +22,14 @@ const PostContent: React.FC<PostContentProps> = ({ contenido, imagen, postId }) 
       </div>
       
       {/* Imagen del post si existe */}
-      {imagen && (
+      {imageUrl && (
         <div className="border-t border-b border-gray-100">
           <img 
-            src={imagen} 
+            src={imageUrl} 
             alt="Contenido de la publicación" 
             className="w-full h-auto"
             onError={(e) => {
-              console.error(`Error al cargar imagen del post ${postId}`);
+              console.error(`Error al cargar imagen del post ${postId}:`, imageUrl);
               const target = e.target as HTMLImageElement;
               target.src = '/sample-post-image.svg';
             }}

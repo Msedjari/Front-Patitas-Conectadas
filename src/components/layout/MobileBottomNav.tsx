@@ -47,6 +47,20 @@ const MobileBottomNav: React.FC = () => {
     }
   }, [user?.id]);
 
+  // Efecto para escuchar cambios en el caché de imágenes
+  useEffect(() => {
+    const handleUserImageUpdate = (e: CustomEvent) => {
+      const { userId, imagePath } = e.detail;
+      setUserImagesCache(prev => ({
+        ...prev,
+        [userId]: imagePath
+      }));
+    };
+
+    window.addEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    return () => window.removeEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+  }, []);
+
   // Comprobar la ruta actual para determinar qué ícono está activo
   const isActive = (path: string) => {
     return location.pathname === path;
