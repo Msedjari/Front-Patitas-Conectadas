@@ -251,7 +251,7 @@ export const fetchCurrentUserProfile = async (userId: number): Promise<Profile> 
  * @param userId - ID del usuario
  * @param profileData - Datos actualizados del perfil
  */
-export const updateProfile = async (userId: number, profileData: Partial<Profile>): Promise<Profile> => {
+export const updateUserProfile = async (userId: number, profileData: Partial<Profile>): Promise<Profile> => {
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     if (!token) {
@@ -276,7 +276,7 @@ export const updateProfile = async (userId: number, profileData: Partial<Profile
 
     return await response.json();
   } catch (error) {
-    console.error('Error en updateProfile:', error);
+    console.error('Error en updateUserProfile:', error);
     throw error;
   }
 };
@@ -285,7 +285,7 @@ export const updateProfile = async (userId: number, profileData: Partial<Profile
  * Crea un perfil para un usuario
  * @param profileData - Datos del perfil a crear
  */
-export const createProfile = async (profileData: Profile): Promise<Profile> => {
+export const createUserProfile = async (profileData: Profile): Promise<Profile> => {
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     if (!token) {
