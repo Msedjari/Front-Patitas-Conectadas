@@ -378,7 +378,6 @@ const Navbar: React.FC = () => {
                         <p className="text-sm text-[#575350]">Ver tu perfil</p>
                       </div>
                     </Link>
-                    </Link>
                   </div>
                   
                   {/* Menu options */}
