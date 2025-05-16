@@ -4,6 +4,7 @@
  * Incluye operaciones CRUD (crear, leer, actualizar, eliminar) y utilidades relacionadas
  */
 import { config } from '../config';
+import { getAuthHeaders } from '../utils/auth';
 
 /**
  * Interfaz para el modelo de Post
@@ -77,19 +78,38 @@ export const fetchPostById = async (id: number): Promise<Post> => {
 
 /**
  * Crea una nueva publicación en el sistema
- * @param postData - Datos de la publicación a crear
+ * @param postData - Datos de la publicación a crear (puede ser FormData o Post)
  * @returns Promesa que resuelve al objeto Post creado (con ID asignado)
  */
-export const createPost = async (postData: Post): Promise<Post> => {
+export const createPost = async (postData: FormData | Post): Promise<Post> => {
   try {
-    // Realizamos la petición POST con los datos de la nueva publicación
-    const response = await fetch(`${config.apiUrl}/posts`, {
-      method: 'POST',                           // Método HTTP para crear recursos
-      headers: {
-        'Content-Type': 'application/json',     // Indicamos que enviamos JSON
-      },
-      body: JSON.stringify(postData),           // Convertimos el objeto a string JSON
-    });
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) {
+      throw new Error('No hay token disponible');
+    }
+
+    let response;
+    
+    if (postData instanceof FormData) {
+      // Si es FormData, significa que hay una imagen para subir
+      response = await fetch(`${config.apiUrl}/posts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: postData
+      });
+    } else {
+      // Si es un objeto Post normal, lo enviamos como JSON
+      response = await fetch(`${config.apiUrl}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(postData)
+      });
+    }
     
     // Verificamos si la creación fue exitosa
     if (!response.ok) {
@@ -165,16 +185,23 @@ export const deletePost = async (id: number): Promise<void> => {
  */
 export const fetchPostsByUser = async (userId: number): Promise<Post[]> => {
   try {
-    // Realizamos la petición para obtener publicaciones filtradas por usuario
-    const response = await fetch(`${config.apiUrl}/posts/usuario/${userId}`);
-    
-    // Verificamos si la respuesta fue exitosa
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) {
+      throw new Error('No hay token disponible');
+    }
+
+    const response = await fetch(`${config.apiUrl}/posts/usuarios/${userId}/posts`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
     if (!response.ok) {
       throw new Error(`Error al obtener publicaciones del usuario: ${response.statusText}`);
     }
-    
-    // Devolvemos el array de publicaciones del usuario
-    return await response.json();
+
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error(`Error al obtener publicaciones del usuario ${userId}:`, error);
     throw error;

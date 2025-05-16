@@ -53,81 +53,91 @@ const Home: React.FC = () => {
     };
   }, []);
 
+  // Efecto para escuchar cambios en el caché de imágenes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userImagesCache') {
+        try {
+          const newCache = JSON.parse(e.newValue || '{}');
+          setUserImagesCache(newCache);
+        } catch (error) {
+          console.error('Error al actualizar caché de imágenes:', error);
+        }
+      }
+    };
+
+    const handleUserImageUpdate = (e: CustomEvent) => {
+      const { userId, imagePath } = e.detail;
+      setUserImagesCache(prevCache => ({
+        ...prevCache,
+        [userId]: imagePath
+      }));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    };
+  }, []);
+
   /**
    * Función para cargar las publicaciones
    * Convertida a useCallback para evitar recreación innecesaria
    */
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Realizar la llamada al backend con la ruta correcta
       const token = localStorage.getItem(config.session.tokenKey);
       if (!token) {
-        console.warn('No hay token disponible, no se pueden cargar las publicaciones');
-        setLoading(false);
-        return;
+        throw new Error('No hay token de autenticación');
       }
-      
-      console.log('Cargando publicaciones desde:', `${config.apiUrl}/posts`);
       
       const response = await fetch(`${config.apiUrl}/posts`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Publicaciones cargadas:', data.length);
-        
-        // Imprimir la primera publicación para depuración
-        if (data.length > 0) {
-          console.log('Ejemplo de publicación recibida:', JSON.stringify(data[0], null, 2));
-        }
-        
-        // Adaptar los datos al formato esperado por los componentes
-        const validatedPosts = data.map((post: any) => {
-          console.log(`Procesando post ID ${post.id}`);
-          
-          // Convertir la estructura del post para que tenga un objeto creador
-          // que contenga los datos del creador como espera el componente PostItem
-          return {
-            ...post,
-            // Crear el objeto creador con la estructura correcta
-            creador: {
-              id: post.creadorId,
-              nombre: post.nombreCreador || 'Usuario',
-              apellido: post.apellidoCreador || '',
-            }
-          };
-        });
-        
-        console.log('Posts procesados:', validatedPosts.length);
-        setPosts(validatedPosts);
-        
-        // Obtener IDs únicos de creadores para buscar sus imágenes
-        const uniqueCreatorIds = [...new Set(
-          validatedPosts
-            .map((post: any) => post.creadorId)
-            .filter((id: number | undefined | null) => id !== undefined && id !== null && id !== 0)
-        )];
-        
-        console.log('IDs únicos de creadores para obtener imágenes:', uniqueCreatorIds);
-        
-        if (uniqueCreatorIds.length > 0) {
-          fetchUserImages(uniqueCreatorIds as number[]);
-        }
-      } else {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar los posts');
       }
-    } catch (err) {
-      console.error('Error al cargar publicaciones:', err);
-      setError('No se pudieron cargar las publicaciones. Por favor, intenta de nuevo más tarde.');
+      
+      const data = await response.json();
+      
+      // Ordenar los posts por fecha de creación (más recientes primero)
+      const sortedPosts = data.sort((a: Post, b: Post) => {
+        // Obtener las fechas de creación, usando el campo que esté disponible
+        const dateA = new Date(a.fecha_creacion || a.fechaCreacion || a.createdAt || a.fecha || '');
+        const dateB = new Date(b.fecha_creacion || b.fechaCreacion || b.createdAt || b.fecha || '');
+        
+        // Comparar las fechas en milisegundos
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      console.log('Posts ordenados:', sortedPosts.map(post => ({
+        id: post.id,
+        fecha: post.fecha_creacion || post.fechaCreacion || post.createdAt || post.fecha
+      })));
+      
+      setPosts(sortedPosts);
+      
+      // Obtener IDs únicos de usuarios para cargar sus imágenes
+      const userIds = Array.from(new Set(sortedPosts.map(post => post.creadorId || post.creador?.id).filter(Boolean)));
+      console.log('IDs de usuarios a cargar:', userIds);
+      await fetchUserImages(userIds);
+      
+    } catch (error) {
+      console.error('Error al cargar posts:', error);
+      setError('Error al cargar los posts. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
   
   // Efecto para cargar los posts al montar el componente
   // Con la referencia hasLoadedRef para evitar doble carga
@@ -162,7 +172,7 @@ const Home: React.FC = () => {
       
       for (const userId of idsToFetch) {
         try {
-          // Intentamos obtener los datos básicos del usuario primero, ya que según la API es lo que está disponible
+          // Intentamos obtener los datos básicos del usuario primero
           const userResponse = await fetch(`${config.apiUrl}/usuarios/${userId}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -175,8 +185,12 @@ const Home: React.FC = () => {
             
             // Verificar si el usuario tiene una imagen en los datos básicos
             if (userData && userData.img) {
-              newCache[userId] = userData.img;
-              console.log(`Imagen obtenida para usuario ${userId}:`, userData.img);
+              // Almacenar solo la ruta relativa en el caché
+              const relativePath = userData.img.includes(config.apiUrl) 
+                ? userData.img.replace(`${config.apiUrl}/uploads/`, '')
+                : userData.img;
+              newCache[userId] = relativePath;
+              console.log(`Imagen obtenida para usuario ${userId}:`, relativePath);
             } else {
               // Si no hay imagen en los datos básicos, intentamos buscar en el perfil
               console.log(`Buscando perfil para usuario ${userId}`);
@@ -192,8 +206,12 @@ const Home: React.FC = () => {
                 console.log(`Datos de perfil para usuario ${userId}:`, profileData);
                 
                 if (profileData && profileData.img) {
-                  newCache[userId] = profileData.img;
-                  console.log(`Imagen de perfil obtenida para usuario ${userId}:`, profileData.img);
+                  // Almacenar solo la ruta relativa en el caché
+                  const relativePath = profileData.img.includes(config.apiUrl)
+                    ? profileData.img.replace(`${config.apiUrl}/uploads/`, '')
+                    : profileData.img;
+                  newCache[userId] = relativePath;
+                  console.log(`Imagen de perfil obtenida para usuario ${userId}:`, relativePath);
                 } else {
                   console.log(`No se encontró imagen para usuario ${userId}, usando imagen por defecto`);
                   newCache[userId] = '/default-avatar.svg';
@@ -224,11 +242,11 @@ const Home: React.FC = () => {
   /**
    * Maneja el envío del formulario para crear un nuevo post
    */
-  const handlePostSubmit = async (postData: PostData) => {
+  const handlePostSubmit = async (postData: FormData) => {
     try {
       setIsSubmitting(true);
       
-      console.log('Enviando publicación:', postData);
+      console.log('Enviando publicación con FormData');
       const token = localStorage.getItem(config.session.tokenKey);
       
       if (!token) {
@@ -238,34 +256,13 @@ const Home: React.FC = () => {
         return;
       }
       
-      // Obtener el ID del usuario autenticado
-      const creadorId = user?.id;
-      if (!creadorId) {
-        console.error('No se pudo obtener el ID del usuario autenticado');
-        setError('No se pudo crear la publicación: Error al obtener tu identificación de usuario');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Crear el objeto de datos según el formato que espera la API
-      const dataToSend = {
-        contenido: postData.contenido,
-        // La API espera directamente el creadorId, no un objeto creador
-        creadorId: Number(creadorId),
-        img: postData.img || null
-      };
-      
-      console.log('Datos de publicación adaptados para la API:', dataToSend);
-      
-      // Realizar la petición fetch con JSON
+      // Realizar la petición fetch con FormData
       const response = await fetch(`${config.apiUrl}/posts`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "*/*",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(dataToSend),
+        body: postData
       });
       
       if (!response.ok) {
@@ -278,12 +275,10 @@ const Home: React.FC = () => {
       console.log('Post creado exitosamente:', newPost);
       
       // Adaptar el post creado a la estructura esperada por los componentes
-      // La API devuelve creadorId, nombreCreador, etc. directamente en el objeto
       const validatedNewPost: Post = {
         ...newPost,
-        // Asegurar compatibilidad con ambas estructuras (creador anidado y campos directos)
         creador: {
-          id: newPost.creadorId || creadorId,
+          id: newPost.creadorId || user?.id,
           nombre: newPost.nombreCreador || user?.name || user?.nombre || 'Usuario',
           apellido: newPost.apellidoCreador || user?.apellidos || ''
         }
@@ -303,7 +298,6 @@ const Home: React.FC = () => {
       
     } catch (err) {
       console.error('Error al crear el post:', err);
-      // Mostrar mensaje de error más amigable para el usuario
       const errorMessage = err instanceof Error 
         ? err.message
         : 'No se pudo crear la publicación. Por favor, intenta de nuevo.';

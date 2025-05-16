@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
 import logoImage from '../../assets/logo.png'; // Importación del logo
+import { getUserImage } from '../home/HomeUtils';
+import { searchUsers, User } from '../../services/userService';
 
 /**
  * Navbar Component
@@ -23,11 +25,19 @@ import logoImage from '../../assets/logo.png'; // Importación del logo
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const location = useLocation();
   
   // State to control user menu dropdown visibility
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // State for unread notification count - ahora comentado
   // const [notificationCount, setNotificationCount] = useState(0);
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   /**
@@ -54,6 +64,53 @@ const Navbar: React.FC = () => {
   }, [user]);
   */
   
+  // Efecto para cargar la imagen del usuario
+  useEffect(() => {
+    if (user?.id) {
+      const fetchUserImage = async () => {
+        try {
+          const token = localStorage.getItem(config.session.tokenKey);
+          if (!token) return;
+
+          // Intentar obtener la imagen del perfil
+          const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData && profileData.img) {
+              setUserImagesCache(prev => ({
+                ...prev,
+                [user.id]: profileData.img
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar imagen de usuario:', error);
+        }
+      };
+
+      fetchUserImage();
+    }
+  }, [user?.id]);
+  
+  // Efecto para escuchar cambios en el caché de imágenes
+  useEffect(() => {
+    const handleUserImageUpdate = (e: CustomEvent) => {
+      const { userId, imagePath } = e.detail;
+      setUserImagesCache(prev => ({
+        ...prev,
+        [userId]: imagePath
+      }));
+    };
+
+    window.addEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    return () => window.removeEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+  }, []);
+  
   // Cerrar el menú desplegable al hacer clic fuera de él
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,6 +124,47 @@ const Navbar: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+  
+  // Efecto para manejar clics fuera del área de búsqueda
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Efecto para buscar usuarios cuando cambia la consulta
+  useEffect(() => {
+    const searchTimeout = setTimeout(async () => {
+      if (searchQuery.trim().length > 2) {
+        try {
+          setIsSearching(true);
+          setSearchError(null);
+          const results = await searchUsers(searchQuery);
+          setSearchResults(results);
+          setShowResults(true);
+        } catch (error) {
+          console.error('Error al buscar usuarios:', error);
+          setSearchError('Error al buscar usuarios. Por favor, intenta de nuevo.');
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+        setSearchError(null);
+      }
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchQuery]);
   
   /**
    * Handle user logout
@@ -105,15 +203,71 @@ const Navbar: React.FC = () => {
           </Link>
           
           {/* Search bar with icon */}
-          <div className="relative">
+          <div className="relative" ref={searchRef}>
             <input 
               type="text" 
-              placeholder="Buscar en Patitas Conectadas" 
+              placeholder="Buscar usuarios..." 
               className="bg-white rounded-full py-2 pl-10 pr-4 w-[240px] focus:outline-none focus:ring-2 focus:ring-[#6cda84] border border-gray-200"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery.trim().length > 2 && setShowResults(true)}
             />
             <svg className="absolute left-3 top-2.5 h-5 w-5 text-[#3d7b6f]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
             </svg>
+
+            {/* Resultados de búsqueda */}
+            {showResults && (
+              <div className="absolute top-full left-0 mt-2 w-[300px] bg-white rounded-lg shadow-lg border border-gray-200 max-h-[400px] overflow-y-auto">
+                {isSearching ? (
+                  <div className="p-4 text-center text-[#3d7b6f]">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84] mx-auto"></div>
+                    <p className="mt-2">Buscando...</p>
+                  </div>
+                ) : searchError ? (
+                  <div className="p-4 text-center text-red-500">
+                    <p>{searchError}</p>
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div>
+                    {searchResults.map((user) => (
+                      <Link
+                        key={user.id}
+                        to={`/perfil/${user.id}`}
+                        className="flex items-center space-x-3 p-3 hover:bg-[#f8ffe5] border-b border-gray-100 last:border-b-0"
+                        onClick={() => {
+                          setShowResults(false);
+                          setSearchQuery('');
+                          setSearchError(null);
+                        }}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+                          <img 
+                            src={getUserImage(userImagesCache, user.id)} 
+                            alt={user.nombre} 
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/default-avatar.svg';
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-[#2a2827] hover:text-[#6cda84] transition-colors">
+                            {user.nombre} {user.apellido}
+                          </p>
+                          <p className="text-sm text-[#575350]">{user.email}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-[#575350]">
+                    No se encontraron resultados
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         
@@ -187,7 +341,7 @@ const Navbar: React.FC = () => {
               >
                 <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden border-2 border-[#6cda84]">
                   <img 
-                    src={user.img || user.profileImage || "/default-avatar.svg"} 
+                    src={getUserImage(userImagesCache, user.id)} 
                     alt={user.nombre || user.name || "Usuario"} 
                     className="h-full w-full object-cover"
                     onError={(e) => {
@@ -206,11 +360,11 @@ const Navbar: React.FC = () => {
                     <Link 
                       to="/perfil" 
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center space-x-3 hover:bg-[#f8ffe5] rounded p-1"
+                      className="flex items-center space-x-3 hover:bg-[#f8ffe5] p-2 rounded-lg"
                     >
                       <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
                         <img 
-                          src={user.img || user.profileImage || "/default-avatar.svg"} 
+                          src={getUserImage(userImagesCache, user.id)} 
                           alt={user.nombre || user.name || "Usuario"} 
                           className="h-full w-full object-cover"
                           onError={(e) => {

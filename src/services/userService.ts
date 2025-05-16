@@ -13,6 +13,7 @@ export interface User {
   nombre: string;
   apellido: string;
   email: string;
+  img?: string;
   password?: string;
   descripcion?: string;
   fecha_nacimiento?: string;
@@ -23,13 +24,62 @@ export interface User {
   updated_at?: string;
 }
 
+/**
+ * Busca usuarios por nombre o correo electrónico
+ * @param query Texto para buscar usuarios
+ * @returns Lista de usuarios que coinciden con la búsqueda
+ */
+
+export const searchUsers = async (query: string): Promise<User[]> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    if (!token) throw new Error('No hay token de autenticación');
+
+    // Dividir la consulta en palabras para buscar por nombre y apellido
+    const searchTerms = query.trim().split(' ');
+    const searchParams = new URLSearchParams();
+    
+    // Si solo hay una palabra, buscamos por nombre
+    if (searchTerms.length === 1) {
+      searchParams.append('nombre', searchTerms[0]);
+    } 
+    // Si hay más de una palabra, la primera es nombre y el resto apellido
+    else if (searchTerms.length > 1) {
+      searchParams.append('nombre', searchTerms[0]);
+      searchParams.append('apellido', searchTerms.slice(1).join(' '));
+    }
+
+    const response = await fetch(`${config.apiUrl}/usuarios/buscar?${searchParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al buscar usuarios');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error en searchUsers:', error);
+    throw error;
+  }
+};
+
 // Definición para el perfil de usuario que incluye información específica del perfil
 export interface UserProfile extends User {
   mascotasCount?: number;
   amigosCount?: number;
 }
 
-// Interfaz para crear/actualizar el perfil
+// Interfaz para crea
+// /**
+//  * Busca usuarios por nombre o correo electrónico
+//  * @param query Texto para buscar usuarios
+//  * @returns Lista de usuarios que coinciden con la búsquedar/actualizar el perfil
 export interface UserProfileUpdate {
   nombre?: string;
   apellido?: string;
@@ -181,29 +231,29 @@ export const fetchFriendsByUserId = async (userId: number): Promise<User[]> => {
   }
 };
 
-/**
- * Busca usuarios por nombre o correo electrónico
- * @param query Texto para buscar usuarios
- * @returns Lista de usuarios que coinciden con la búsqueda
- */
-export const searchUsers = async (query: string): Promise<User[]> => {
-  try {
-    const response = await fetch(`${config.apiUrl}/usuarios?q=${encodeURIComponent(query)}`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
+// /**
+//  * Busca usuarios por nombre o correo electrónico
+//  * @param query Texto para buscar usuarios
+//  * @returns Lista de usuarios que coinciden con la búsqueda
+ //*/
+// export const searchUsers = async (query: string): Promise<User[]> => {
+//   try {
+//     const response = await fetch(`${config.apiUrl}/usuarios?q=${encodeURIComponent(query)}`, {
+//       method: 'GET',
+//       headers: getAuthHeaders(),
+//     });
     
-    if (!response.ok) {
-      throw new Error(`Error al buscar usuarios: ${response.statusText}`);
-    }
+//     if (!response.ok) {
+//       throw new Error(`Error al buscar usuarios: ${response.statusText}`);
+//     }
     
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error en searchUsers:', error);
-    throw error;
-  }
-};
+//     const data = await response.json();
+//     return data;
+//   } catch (error) {
+//     console.error('Error en searchUsers:', error);
+//     throw error;
+//   }
+// };
 
 /**
  * Agrega un amigo (seguir a un usuario)

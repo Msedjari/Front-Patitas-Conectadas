@@ -85,7 +85,7 @@ const MainLayout: React.FC = () => {
         
         {/* Contenido principal centrado */}
         <div className="flex-1 md:ml-[300px] md:mr-[300px] py-6 px-4 pb-16 md:pb-6">
-          <main className="max-w-[680px] mx-auto">
+          <main className="w-full mx-auto">
             <Outlet />
           </main>
         </div>

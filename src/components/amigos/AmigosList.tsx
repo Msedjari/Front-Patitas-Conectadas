@@ -1,26 +1,19 @@
 import React from 'react';
 import AmigoCard from './AmigoCard';
+import {AmigoCardProps} from './AmigoCard';
 import EmptyState from '../common/EmptyState';
 
 interface AmigosListProps {
-  amigos: Array<{
-    id: number;
-    nombre: string;
-    apellido?: string;
-    img?: string;
-    email?: string;
-  }>;
-  onRemoveAmigo: (amigo: any) => void;
+  amigos: AmigoCardProps[];
+  onRemoveAmigo: (amigos: any) => void;
 }
 
 /**
  * Componente para mostrar una lista de amigos
  */
-const AmigosList: React.FC<AmigosListProps> = ({
-  amigos,
-  onRemoveAmigo
-}) => {
-  if (!amigos.length) {
+const AmigosList: React.FC<AmigosListProps> = (props) => {
+  const {onRemoveAmigo} = props;
+  if (!props.amigos.length) {
     return (
       <EmptyState 
         message="No tienes amigos agregados aún" 
@@ -33,10 +26,9 @@ const AmigosList: React.FC<AmigosListProps> = ({
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-[#3d7b6f] mb-4">Tus Amigos</h2>
       
-      {amigos.map(amigo => (
+      {props.amigos.map(amigo => (
         <AmigoCard 
-          key={amigo.id} 
-          amigo={amigo} 
+          {...amigo}
           onRemove={onRemoveAmigo} 
         />
       ))}

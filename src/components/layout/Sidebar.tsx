@@ -1,6 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getUserImage } from '../home/HomeUtils';
+import { config } from '../../config';
 
 /**
  * Componente de Barra Lateral Izquierda
@@ -16,9 +18,57 @@ import { useAuth } from '../../context/AuthContext';
  * - Implementa iconos visuales para cada sección
  */
 const Sidebar: React.FC = () => {
-  // En una aplicación real, usaríamos el contexto de autenticación
   const { user } = useAuth();
-  
+  const location = useLocation();
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
+
+  // Efecto para cargar la imagen del usuario
+  useEffect(() => {
+    if (user?.id) {
+      const fetchUserImage = async () => {
+        try {
+          const token = localStorage.getItem(config.session.tokenKey);
+          if (!token) return;
+
+          // Intentar obtener la imagen del perfil
+          const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData && profileData.img) {
+              setUserImagesCache(prev => ({
+                ...prev,
+                [user.id]: profileData.img
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar imagen de usuario:', error);
+        }
+      };
+
+      fetchUserImage();
+    }
+  }, [user?.id]);
+
+  // Efecto para escuchar cambios en el caché de imágenes
+  useEffect(() => {
+    const handleUserImageUpdate = (e: CustomEvent) => {
+      const { userId, imagePath } = e.detail;
+      setUserImagesCache(prev => ({
+        ...prev,
+        [userId]: imagePath
+      }));
+    };
+
+    window.addEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    return () => window.removeEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+  }, []);
+
   // Elementos de la barra lateral con sus iconos y rutas
   const sidebarItems = [
     { name: 'Amigos', icon: 'users', path: '/amigos' },
@@ -78,23 +128,24 @@ const Sidebar: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col p-3 overflow-y-auto">
-      {/* Perfil de usuario */}
-      {user && (
-        <Link to="/perfil" className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white mb-2">
-          <div className="h-9 w-9 rounded-full bg-gray-300 overflow-hidden">
-            <img 
-              src={user.profileImage || "/default-avatar.svg"} 
-              alt={user.name || "Usuario"} 
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/default-avatar.svg';
-              }}
-            />
-          </div>
-          <span className="font-medium text-[#2a2827]">{user.name || "Usuario"}</span>
-        </Link>
-      )}
+      {/* User profile link */}
+      <Link 
+        to="/perfil" 
+        className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f8ffe5] transition-colors ${location.pathname === '/perfil' ? 'bg-[#f8ffe5]' : ''}`}
+      >
+        <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+          <img 
+            src={getUserImage(userImagesCache, user?.id)} 
+            alt={user?.nombre || user?.name || "Usuario"} 
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = '/default-avatar.svg';
+            }}
+          />
+        </div>
+        <span className="text-[#2a2827] font-medium">{user?.nombre || user?.name || "Usuario"}</span>
+      </Link>
       
       {/* Navegación principal */}
       <nav className="flex-1">
