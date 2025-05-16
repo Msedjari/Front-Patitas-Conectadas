@@ -181,6 +181,17 @@ const Navbar: React.FC = () => {
     navigate('/login');
   };
   
+  /**
+   * Handle navigation to profile page
+   */
+  const handleProfileClick = () => {
+    // Close user menu if open
+    setUserMenuOpen(false);
+    
+    // Navigate to profile page
+    navigate('/perfil');
+  };
+  
   return (
     <nav className="bg-[#f8ffe5] shadow-md fixed top-0 left-0 right-0 h-14 z-50">
       <div className="max-w-screen-2xl mx-auto px-3 h-full flex items-center justify-between">
@@ -367,6 +378,7 @@ const Navbar: React.FC = () => {
                         <p className="text-sm text-[#575350]">Ver tu perfil</p>
                       </div>
                     </Link>
+                    </Link>
                   </div>
                   
                   {/* Menu options */}
@@ -415,10 +427,10 @@ const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center space-x-2">
-              <Link to="/login" className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors">
+              <Link to="/login" className="px-4 py-2 text-[#3d7b6f] hover:text-[#2a2827]">
                 Iniciar sesión
               </Link>
-              <Link to="/register" className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-md hover:bg-[#f8ffe5] transition-colors">
+              <Link to="/register" className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58]">
                 Registrarse
               </Link>
             </div>

@@ -1,36 +1,43 @@
 import React from 'react';
+import { BsInboxFill } from 'react-icons/bs';
+import ActionButton from './ActionButton';
 
 interface EmptyStateProps {
   message: string;
+  icon?: React.ReactNode;
   actionText?: string;
   onAction?: () => void;
-  description?: string;
+  className?: string;
 }
 
 /**
  * Componente para mostrar un estado vacío con mensaje y acción opcional
  */
-const EmptyState: React.FC<EmptyStateProps> = ({ 
-  message, 
+const EmptyState: React.FC<EmptyStateProps> = ({
+  message,
+  icon,
   actionText,
   onAction,
-  description
+  className = ''
 }) => {
   return (
-    <div className="text-center py-10 bg-gray-50 rounded-lg">
-      <p className="text-gray-500 mb-2">{message}</p>
+    <div className={`flex flex-col items-center justify-center py-10 ${className}`}>
+      <div className="text-gray-400 mb-4">
+        {icon || <BsInboxFill size={40} />}
+      </div>
       
-      {description && (
-        <p className="text-[#575350] mb-3 text-sm">{description}</p>
-      )}
+      <p className="text-gray-500 text-center mb-4">
+        {message}
+      </p>
       
       {actionText && onAction && (
-        <button 
-          className="text-[#3d7b6f] hover:underline"
+        <ActionButton
+          variant="primary"
+          size="sm"
           onClick={onAction}
         >
           {actionText}
-        </button>
+        </ActionButton>
       )}
     </div>
   );
