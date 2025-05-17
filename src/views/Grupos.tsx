@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import ActionButton from '../components/common/ActionButton';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
-import GrupoForm from '../components/grupos/GrupoForm';
-import GruposList from '../components/grupos/GruposList';
-import DeleteGrupoDialog from '../components/grupos/DeleteGrupoDialog';
+import GrupoForm from '../components/groups/GrupoForm';
+import GruposList from '../components/groups/GruposList';
+import DeleteGrupoDialog from '../components/groups/DeleteGrupoDialog';
 import { config } from '../config';
 import { 
   Group as Grupo, 
