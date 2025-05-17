@@ -329,4 +329,40 @@ export const removeFriend = async (userId: number, friendId: number): Promise<{s
     console.error('Error en removeFriend:', error);
     throw error;
   }
+};
+
+export const userService = {
+  // ... existing searchUsers function ...
+  // Asegúrate de que searchUsers ya exista y funcione correctamente
+  // searchUsers: async (query: string): Promise<User[]> => { ... }
+
+  /**
+   * Obtiene los detalles completos de un usuario por su ID.
+   * @param userId - ID del usuario.
+   * @returns Promesa que resuelve a un objeto User.
+   */
+   getUserById: async (userId: number): Promise<User> => {
+     try {
+       const token = localStorage.getItem(config.session.tokenKey);
+       if (!token) throw new Error('No hay token de autenticación.');
+
+       const response = await fetch(`${config.apiUrl}/usuarios/${userId}`, {
+         headers: {
+           'Authorization': `Bearer ${token}`,
+         },
+       });
+
+       if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error al obtener usuario: ${response.status} - ${errorText || response.statusText}`);
+       }
+
+       return await response.json();
+     } catch (error) {
+       console.error(`Error en getUserById (${userId}):`, error);
+       throw error;
+     }
+   },
+
+   // ... otras funciones como agregarAmigo, etc. si existen ...
 }; 
