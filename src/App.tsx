@@ -24,6 +24,7 @@ import Eventos from './views/Eventos';
 import Grupos from './views/Grupos';
 import Amigos from './views/Amigos';
 import Guardados from './views/Guardados';
+import Chat from './views/Chat';
 import { UserProvider } from './context/UserContext';
 
 /**
@@ -124,12 +125,14 @@ const AppRoutes = () => {
       >
         {/* Rutas anidadas dentro del layout principal */}
         <Route index element={<Home />} /> {/* Ruta principal/feed */}
-        <Route path="perfil" element={<Perfil />} /> {/* Perfil del usuario */}
+        <Route path="perfil/:id" element={<Perfil />} /> {/* Ruta para perfiles específicos */}
+        <Route path="mi-perfil" element={<Perfil />} /> {/* Si tienes una ruta específica para tu perfil */}
         <Route path="grupos" element={<Grupos />} />
         <Route path="eventos" element={<Eventos />} />
         <Route path="patitas" element={<div>Patitas conectadas (En desarrollo)</div>} />
         <Route path="amigos" element={<Amigos />} />
         <Route path="guardados" element={<Guardados />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
       
       {/* Redirección para rutas no encontradas */}
