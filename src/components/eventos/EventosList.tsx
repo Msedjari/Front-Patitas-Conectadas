@@ -1,54 +1,25 @@
 import React from 'react';
-import EventoCard from './EventoCard';
-import EmptyState from '../common/EmptyState';
+import { Evento } from '../../services/eventosService';
 
-interface EventosListProps {
-  eventos: Array<{
-    id?: number;
-    nombre: string;
-    descripcion: string;
-    fecha: string;
-    ubicacion: string;
-  }>;
-  onEdit: (evento: any) => void;
-  onDelete: (evento: any) => void;
-  formatDate: (dateString: string) => string;
-  onCreateNew?: () => void;
+interface Props {
+  eventos: Evento[];
+  onEdit: (evento: Evento) => void;
+  onDelete: (evento: Evento) => void;
 }
 
-/**
- * Componente para mostrar la lista de eventos
- */
-const EventosList: React.FC<EventosListProps> = ({
-  eventos,
-  onEdit,
-  onDelete,
-  formatDate,
-  onCreateNew
-}) => {
-  if (eventos.length === 0) {
-    return (
-      <EmptyState 
-        message="No hay eventos programados."
-        actionText={onCreateNew ? "Crea el primer evento" : undefined}
-        onAction={onCreateNew}
-      />
-    );
-  }
-  
-  return (
-    <div className="space-y-4">
-      {eventos.map(evento => (
-        <EventoCard
-          key={evento.id}
-          evento={evento}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          formatDate={formatDate}
-        />
-      ))}
-    </div>
-  );
-};
+const EventosList: React.FC<Props> = ({ eventos, onEdit, onDelete }) => (
+  <ul>
+    {eventos.map(ev => (
+      <li key={ev.id} className="mb-4 p-4 border rounded">
+        <h3>{ev.nombre}</h3>
+        <p>{ev.descripcion}</p>
+        <p><b>Ubicación:</b> {ev.ubicacion}</p>
+        <p><b>Fecha:</b> {ev.fecha}</p>
+        <button onClick={() => onEdit(ev)}>Editar</button>
+        <button onClick={() => onDelete(ev)}>Eliminar</button>
+      </li>
+    ))}
+  </ul>
+);
 
 export default EventosList; 
