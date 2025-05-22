@@ -4,8 +4,8 @@ import { config } from '../config';
 import ActionButton from '../components/common/ActionButton';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
-import EventoForm from '../components/events/EventoForm';
-import EventosList from '../components/events/EventosList';
+import EventoForm from '../components/eventos/EventoForm';
+import EventosList from '../components/eventos/EventosList';
 import DeleteEventoDialog from '../components/eventos/DeleteEventoDialog';
 import { fetchEventos, createEvento, updateEvento, deleteEvento, Evento } from '../services/eventosService';
 
