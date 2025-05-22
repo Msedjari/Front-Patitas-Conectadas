@@ -209,7 +209,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ 
+          email: email,  // Mantenemos email como lo espera el backend
+          password: password  // Mantenemos password como lo espera el backend
+        })
       });
 
       if (!response.ok) {
@@ -218,8 +221,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let errorMessage = 'Error al iniciar sesión. Por favor, verifique sus credenciales.';
         try {
           const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
+          if (errorData.error) {  // Cambiamos a error que es lo que devuelve el backend
+            errorMessage = errorData.error;
           }
         } catch (e) {
           // Si no se puede parsear el JSON, usamos el mensaje por defecto

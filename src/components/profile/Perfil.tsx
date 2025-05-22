@@ -24,6 +24,7 @@ import { Link, useParams } from 'react-router-dom';
 import FileUploader from '../common/FileUploader';
 import { UserImagesCache, Post } from '../home/types';
 import PostList from '../home/PostList';
+import Valoraciones from './Valoraciones';
 
 /**
  * Componente de Perfil de usuario
@@ -52,6 +53,7 @@ const Perfil: React.FC = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -125,59 +127,83 @@ const Perfil: React.FC = () => {
         }
         
         console.log('Cargando perfil para usuario:', targetUserId);
+        console.log('Headers de autenticación:', getAuthHeaders(false));
         
         // Cargar datos del usuario
         const userResponse = await fetch(`${config.apiUrl}/usuarios/${targetUserId}`, {
           headers: getAuthHeaders(false)
         });
         
+        console.log('Respuesta del usuario:', userResponse.status);
+        
         if (!userResponse.ok) {
           throw new Error('Error al cargar los datos del usuario');
         }
         
         const userData = await userResponse.json();
+        console.log('Datos del usuario cargados:', userData);
         setProfileUser(userData);
         
-        // Cargar perfil del usuario
-        const profileResponse = await fetch(`${config.apiUrl}/usuarios/${targetUserId}/perfiles`, {
+        // Intentar primero con el endpoint de perfiles
+        let profileResponse = await fetch(`${config.apiUrl}/perfiles/${targetUserId}`, {
           headers: getAuthHeaders(false)
         });
         
+        console.log('Respuesta del perfil (primer intento):', profileResponse.status);
+        
+        // Si el primer endpoint falla, intentar con el endpoint alternativo
         if (!profileResponse.ok) {
-          // Si no hay perfil, crear uno vacío
-          const emptyProfile = {
-            usuario_id: parseInt(targetUserId),
-            descripcion: '',
-            fecha_nacimiento: '',
-            img: ''
-          };
-          setProfile(emptyProfile);
-          setDescripcion('');
-          setFechaNacimiento('');
-          setImagePreview(null);
-          setProfileImageUrl('');
+          console.log('Intentando con endpoint alternativo...');
+          profileResponse = await fetch(`${config.apiUrl}/usuarios/${targetUserId}/perfiles`, {
+            headers: getAuthHeaders(false)
+          });
+          console.log('Respuesta del perfil (segundo intento):', profileResponse.status);
+        }
+        
+        if (!profileResponse.ok) {
+          if (profileResponse.status === 404) {
+            // Si no hay perfil, mostrar el formulario de creación
+            console.log('No se encontró perfil, mostrando formulario de creación');
+            setEditMode(true);
+            setProfile({
+              usuario_id: parseInt(targetUserId),
+              descripcion: '',
+              fecha_nacimiento: '',
+              img: ''
+            });
+            setDescripcion('');
+            setFechaNacimiento('');
+            setImagePreview(null);
+            setProfileImageUrl('');
+          } else {
+            const errorText = await profileResponse.text();
+            console.error('Error al cargar perfil:', errorText);
+            throw new Error(`Error al cargar el perfil: ${errorText}`);
+        }
         } else {
-          const profileData = await profileResponse.json();
-          console.log('Perfil cargado:', profileData);
-          
-          const normalizedProfile = {
-            ...profileData,
-            usuario_id: parseInt(targetUserId),
-            descripcion: profileData.descripcion || '',
-            fecha_nacimiento: profileData.fecha_nacimiento || ''
+        const profileData = await profileResponse.json();
+        console.log('Perfil cargado:', profileData);
+        
+        const normalizedProfile = {
+          ...profileData,
+          usuario_id: parseInt(targetUserId),
+          descripcion: profileData.descripcion || '',
+          fecha_nacimiento: profileData.fecha_nacimiento || ''
           };
+          
+          console.log('Perfil normalizado:', normalizedProfile);
           
           setProfile(normalizedProfile);
           setDescripcion(normalizedProfile.descripcion);
           setFechaNacimiento(normalizedProfile.fecha_nacimiento);
           
           if (normalizedProfile.img) {
-            const imageUrl = `${config.apiUrl}/uploads/${normalizedProfile.img}`;
-            console.log('URL de imagen construida:', imageUrl);
-            setImagePreview(imageUrl);
+          const imageUrl = `${config.apiUrl}/uploads/${normalizedProfile.img}`;
+          console.log('URL de imagen construida:', imageUrl);
+          setImagePreview(imageUrl);
             setProfileImageUrl(normalizedProfile.img);
           }
-        }
+          }
         
       } catch (error) {
         console.error('Error al cargar perfil:', error);
@@ -247,7 +273,7 @@ const Perfil: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !profile) return;
+    if (!user) return;
     
     try {
       setLoading(true);
@@ -256,31 +282,62 @@ const Perfil: React.FC = () => {
       
       // Crear FormData para enviar los datos
       const formData = new FormData();
+      
+      // Asegurarnos de que los campos coincidan exactamente con lo que espera el backend
       formData.append('descripcion', descripcion || '');
-      formData.append('fechaNacimiento', fechaNacimiento || '');
       
-      // Si hay una imagen, agregarla al FormData
-      if (profileImageUrl) {
-        const relativePath = profileImageUrl.includes(config.apiUrl) 
-          ? profileImageUrl.replace(`${config.apiUrl}/uploads/`, '')
-          : profileImageUrl;
-        formData.append('img', relativePath);
+      // Asegurarnos de que la fecha esté en formato correcto
+      const fechaFormateada = fechaNacimiento ? new Date(fechaNacimiento).toISOString().split('T')[0] : '';
+      formData.append('fechaNacimiento', fechaFormateada);
+      
+      // Asegurarnos de que el usuarioId sea un número
+      formData.append('usuarioId', user.id.toString());
+
+      // Añadir la imagen si se ha seleccionado una nueva
+      if (selectedImage) {
+        formData.append('imagen', selectedImage);
       }
-      
-      console.log('Enviando datos de actualización:', Object.fromEntries(formData));
-      
-      const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+
+      let response;
+      let responseData;
+
+      if (!profile?.id) {
+        // Si no hay perfil, crear uno nuevo
+        console.log('Creando nuevo perfil con datos:', {
+          descripcion: descripcion,
+          fechaNacimiento: fechaFormateada,
+          usuarioId: user.id
+        });
+        
+        // Para crear un nuevo perfil
+        response = await fetch(`${config.apiUrl}/perfiles`, {
+          method: 'POST',
+          headers: {
+            'Authorization': getAuthHeaders(false)['Authorization']
+          },
+          body: formData
+        });
+      } else {
+        // Si ya existe, actualizarlo
+        response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
         method: 'PUT',
         headers: {
           'Authorization': getAuthHeaders(false)['Authorization']
         },
         body: formData
       });
+      }
       
-      const responseData = await response.json();
+      // Intentar parsear la respuesta como JSON
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        console.error('Error al parsear la respuesta:', e);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
       
       if (!response.ok) {
-        throw new Error(responseData.error || 'Error al actualizar el perfil');
+        throw new Error(responseData.error || 'Error al guardar el perfil');
       }
       
       console.log('Respuesta del servidor:', responseData);
@@ -312,27 +369,11 @@ const Perfil: React.FC = () => {
           }
         });
         window.dispatchEvent(event);
-
-        // Forzar la actualización del localStorage
-        const currentCache = JSON.parse(localStorage.getItem('userImagesCache') || '{}');
-        const newCache = {
-          ...currentCache,
-          [user.id]: updatedProfile.img
-        };
-        localStorage.setItem('userImagesCache', JSON.stringify(newCache));
-
-        // Disparar un evento de storage para asegurar que otros componentes lo detecten
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'userImagesCache',
-          newValue: JSON.stringify(newCache),
-          oldValue: JSON.stringify(currentCache),
-          storageArea: localStorage
-        }));
       }
       
       // Desactivamos el modo de edición y mostramos el mensaje de éxito
       setEditMode(false);
-      setSuccessMessage('¡Perfil actualizado correctamente!');
+      setSuccessMessage(profile?.id ? '¡Perfil actualizado correctamente!' : '¡Perfil creado correctamente!');
       
       // Actualizar los datos del usuario en el contexto
       await refreshUserData();
@@ -342,7 +383,7 @@ const Perfil: React.FC = () => {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-      setError('Error al actualizar el perfil. Por favor, intenta de nuevo.');
+        setError('Error al guardar el perfil. Por favor, intenta de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -525,105 +566,26 @@ const Perfil: React.FC = () => {
                 </div>
                 <div className="flex-grow">
                         {user && (
-                          <FileUploader
-                            endpoint={`/usuarios/${user.id}/perfiles`}
-                            method="PUT"
-                            additionalData={{
-                              descripcion: descripcion || '',
-                              fechaNacimiento: fechaNacimiento || ''
-                            }}
-                            onUploaded={async (url) => {
-                              console.log('Imagen subida exitosamente, URL recibida:', url);
-                              try {
-                                setError(null);
-                                setSuccessMessage('');
-                                
-                                // Actualizar la vista previa inmediatamente
-                                setImagePreview(url);
-                                
-                                // La URL ya viene completa del FileUploader
-                                setProfileImageUrl(url.replace(`${config.apiUrl}/uploads/`, ''));
-                                
-                                if (profile) {
-                                  // Crear FormData para la actualización
-                                  const formData = new FormData();
-                                  formData.append('descripcion', descripcion || '');
-                                  formData.append('fechaNacimiento', fechaNacimiento || '');
-                                  formData.append('img', url.replace(`${config.apiUrl}/uploads/`, ''));
-                                  
-                                  console.log('Actualizando perfil con nueva imagen:', Object.fromEntries(formData));
-                                  
-                                  const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
-                                    method: 'PUT',
-                                    headers: {
-                                      'Authorization': getAuthHeaders(false)['Authorization']
-                                    },
-                                    body: formData
-                                  });
-                                  
-                                  const responseData = await response.json();
-                                  
-                                  if (!response.ok) {
-                                    throw new Error(responseData.error || 'Error al actualizar el perfil');
-                                  }
-                                  
-                                  console.log('Perfil actualizado con nueva imagen:', responseData);
-                                  
-                                  // Actualizar el estado con la respuesta del servidor
-                                  setProfile({
-                                    ...responseData,
-                                    usuario_id: parseInt(user.id)
-                                  });
-                                  
-                                  setSuccessMessage('Imagen actualizada correctamente');
-                                  
-                                  // Actualizar el caché de imágenes
-                                  updateUserImagesCache(parseInt(user.id), responseData.img);
-                                }
-                              } catch (error) {
-                                console.error('Error al actualizar perfil con nueva imagen:', error);
-                                // No establecer el error aquí para evitar mensajes confusos
-                                // ya que la imagen se subió correctamente
-                                console.warn('La imagen se subió pero hubo un problema al actualizar el perfil');
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSelectedImage(file);
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setImagePreview(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
                               }
                             }}
-                            onError={(err) => {
-                              console.error('Error en FileUploader:', err);
-                              setError(err);
-                              // Intentar recargar el perfil después de un error
-                              setTimeout(async () => {
-                                if (user) {
-                                  try {
-                                    console.log('Intentando recargar el perfil después del error');
-                                    const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
-                                      headers: getAuthHeaders(false)
-                                    });
-                                    
-                                    if (response.ok) {
-                                      const updatedProfile = await response.json();
-                                      setProfile(updatedProfile);
-                                      setDescripcion(updatedProfile.descripcion || '');
-                                      setFechaNacimiento(updatedProfile.fecha_nacimiento || '');
-                                      if (updatedProfile.img) {
-                                        const imageUrl = `${config.apiUrl}/uploads/${updatedProfile.img}`;
-                                        setImagePreview(imageUrl);
-                                        setProfileImageUrl(updatedProfile.img);
-                                        
-                                        // Actualizar el caché de imágenes
-                                        updateUserImagesCache(parseInt(user.id), updatedProfile.img);
-                                      }
-                                      setError(null); // Limpiar el error si la recarga fue exitosa
-                                    } else {
-                                      throw new Error('Error al recargar el perfil');
-                                    }
-                                  } catch (error) {
-                                    console.error('Error al recargar el perfil:', error);
-                                    // No establecer un nuevo error aquí para evitar mensajes confusos
-                                  }
-                                }
-                              }, 1000);
-                            }}
-                            returnFullUrl={true}
+                            className="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-full file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-[#6cda84] file:text-white
+                              hover:file:bg-[#38cd58]"
                           />
                         )}
                         <p className="text-xs text-[#575350] mt-1">Sube una foto desde tu ordenador.</p>
@@ -717,6 +679,11 @@ const Perfil: React.FC = () => {
                 </p>
               </div>
             </div>
+          )}
+              
+              {/* Componente de Valoraciones */}
+              {!editMode && (
+                <Valoraciones userId={parseInt(id || user?.id || '0')} />
           )}
               </div>
             </div>

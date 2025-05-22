@@ -16,8 +16,8 @@ import AuthButton from './AuthButton';
 const Login = () => {
   // Estado para los datos del formulario
   const [formData, setFormData] = useState({
-    correo: '',
-    contrasena: '',
+    email: '',
+    password: '',
   });
   
   // Estados para manejar errores y carga
@@ -54,15 +54,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log('Intentando iniciar sesión con:', formData.correo);
+      console.log('Intentando iniciar sesión con:', formData.email);
       
       // Si estamos en modo desarrollo, intentar con el login rápido para desarrolladores
-      if (import.meta.env.DEV && formData.correo === 'dev@example.com' && formData.contrasena === 'dev') {
+      if (import.meta.env.DEV && formData.email === 'dev@example.com' && formData.password === 'dev') {
         console.log('Usando login rápido para desarrollo');
       }
       
       // Llamar a la función login desde el contexto de autenticación
-      await login(formData.correo, formData.contrasena);
+      await login(formData.email, formData.password);
       
       // Si llegamos a este punto, el login fue exitoso
       console.log('Login exitoso, redirigiendo a:', from);
@@ -87,8 +87,8 @@ const Login = () => {
     if (import.meta.env.DEV) {
       // En modo desarrollo, llenar los campos silenciosamente
       setFormData({
-        correo: 'dev@example.com',
-        contrasena: 'dev'
+        email: 'dev@example.com',
+        password: 'dev'
       });
     }
   };
@@ -101,21 +101,21 @@ const Login = () => {
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormInput
-          id="correo"
-          name="correo"
+          id="email"
+          name="email"
           type="text"
           label="Correo electrónico"
-          value={formData.correo}
+          value={formData.email}
           onChange={handleChange}
           placeholder="Ingrese su correo o usuario"
         />
         
         <FormInput
-          id="contrasena"
-          name="contrasena"
+          id="password"
+          name="password"
           type="password"
           label="Contraseña"
-          value={formData.contrasena}
+          value={formData.password}
           onChange={handleChange}
           placeholder="Ingrese su contraseña"
         />
