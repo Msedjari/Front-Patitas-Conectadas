@@ -137,7 +137,7 @@ const Sidebar: React.FC = () => {
     <div className="h-full flex flex-col p-3 overflow-y-auto">
       {/* User profile link */}
       <Link 
-        to="/perfil" 
+        to="/mi-perfil" 
         className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f8ffe5] transition-colors ${location.pathname === '/perfil' ? 'bg-[#f8ffe5]' : ''}`}
       >
         <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
