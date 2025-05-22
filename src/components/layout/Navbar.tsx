@@ -189,7 +189,7 @@ const Navbar: React.FC = () => {
     setUserMenuOpen(false);
     
     // Navigate to profile page
-    navigate('/perfil');
+    navigate('/mi-perfil');
   };
   
   return (
@@ -233,7 +233,7 @@ const Navbar: React.FC = () => {
                     {searchResults.map((user) => (
                       <Link
                         key={user.id}
-                        to={`/perfil/${user.id}`}
+                        to={`/mi-perfil/${user.id}`}
                         className="flex items-center space-x-3 p-3 hover:bg-[#f8ffe5] border-b border-gray-100 last:border-b-0"
                         onClick={() => {
                           setShowResults(false);
@@ -358,7 +358,7 @@ const Navbar: React.FC = () => {
                   {/* User profile summary */}
                   <div className="p-4 border-b border-gray-200">
                     <Link 
-                      to="/perfil" 
+                      to="/mi-perfil" 
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center space-x-3 hover:bg-[#f8ffe5] p-2 rounded-lg"
                     >
