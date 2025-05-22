@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import ActionButton from '../components/common/ActionButton';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
-import GrupoForm from '../components/grupos/GrupoForm';
-import GruposList from '../components/grupos/GruposList';
-import DeleteGrupoDialog from '../components/grupos/DeleteGrupoDialog';
+import GrupoForm from '../components/groups/GrupoForm';
+import GruposList from '../components/groups/GruposList';
+import DeleteGrupoDialog from '../components/groups/DeleteGrupoDialog';
 import { config } from '../config';
 import { 
   Group as Grupo, 
@@ -15,7 +15,8 @@ import {
   updateGroup, 
   deleteGroup,
   joinGroup,
-  verifyAuthToken
+  verifyAuthToken,
+  fetchGruposByUsuarioId
 } from '../services/groupService';
 
 /**
@@ -25,11 +26,13 @@ import {
 const Grupos: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [misGrupos, setMisGrupos] = useState<Grupo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingGrupo, setEditingGrupo] = useState<Grupo | null>(null);
   const [tokenError, setTokenError] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'todos' | 'misGrupos'>('todos');
   // Estado para el diálogo de confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [grupoToDelete, setGrupoToDelete] = useState<Grupo | null>(null);
@@ -38,6 +41,13 @@ const Grupos: React.FC = () => {
   useEffect(() => {
     fetchGruposData();
   }, []);
+  
+  // Cargar grupos del usuario
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      fetchMisGrupos();
+    }
+  }, [isAuthenticated, user]);
   
   // Verificar token
   useEffect(() => {
@@ -101,6 +111,26 @@ const Grupos: React.FC = () => {
     }
   };
   
+  // Función para cargar los grupos del usuario
+  const fetchMisGrupos = async () => {
+    try {
+      if (!user?.id) return;
+      
+      const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+      const userGroups = await fetchGruposByUsuarioId(userId);
+      
+      // Extraer los grupos completos
+      const gruposIds = userGroups.map(ug => ug.grupoId);
+      
+      // Filtrar los grupos que ya tenemos cargados
+      const misGruposData = grupos.filter(g => gruposIds.includes(g.id!));
+      
+      setMisGrupos(misGruposData);
+    } catch (err) {
+      console.error('Error al cargar grupos del usuario:', err);
+    }
+  };
+  
   // Manejar envío del formulario (crear o editar grupo)
   const handleSubmitGrupo = async (formData: Grupo) => {
     try {
@@ -154,6 +184,11 @@ const Grupos: React.FC = () => {
         } else {
           throw new Error('No se pudo obtener el ID del usuario para crear el grupo');
         }
+      }
+      
+      // Después de crear o actualizar, refrescar mis grupos
+      if (isAuthenticated && user?.id) {
+        fetchMisGrupos();
       }
       
       // Resetear formulario y ocultarlo
@@ -338,15 +373,55 @@ const Grupos: React.FC = () => {
           />
         )}
         
+        {/* Pestañas para alternar entre todos los grupos y mis grupos */}
+        {isAuthenticated && (
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="flex -mb-px">
+              <button
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${
+                  activeTab === 'todos' 
+                    ? 'border-[#3d7b6f] text-[#3d7b6f]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('todos')}
+              >
+                Todos los grupos
+              </button>
+              <button
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${
+                  activeTab === 'misGrupos' 
+                    ? 'border-[#3d7b6f] text-[#3d7b6f]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab('misGrupos')}
+              >
+                Mis grupos
+              </button>
+            </nav>
+          </div>
+        )}
+        
         {/* Lista de grupos */}
-        <GruposList 
-          grupos={grupos}
-          onEdit={handleEdit}
-          onDelete={handleShowDeleteDialog}
-          onJoin={handleJoinGroup}
-          formatDate={formatDate}
-          onCreateNew={() => setShowForm(true)}
-        />
+        {activeTab === 'todos' ? (
+          <GruposList 
+            grupos={grupos}
+            onEdit={handleEdit}
+            onDelete={handleShowDeleteDialog}
+            formatDate={formatDate}
+            onCreateNew={() => setShowForm(true)}
+            userId={user?.id}
+          />
+        ) : (
+          <GruposList 
+            grupos={misGrupos}
+            onEdit={handleEdit}
+            onDelete={handleShowDeleteDialog}
+            formatDate={formatDate}
+            onCreateNew={() => setShowForm(true)}
+            userId={user?.id}
+            emptyMessage="No perteneces a ningún grupo todavía. ¡Únete a alguno o crea el tuyo propio!"
+          />
+        )}
         
         {/* Diálogo de confirmación para eliminar grupo */}
         <DeleteGrupoDialog

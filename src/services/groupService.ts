@@ -25,6 +25,19 @@ export interface Group {
 }
 
 /**
+ * Interfaz para la relación Usuario-Grupo
+ */
+export interface UsuarioGrupo {
+  id?: number;
+  grupoId: number;
+  nombreGrupo?: string;
+  usuarioId: number;
+  nombreUsuario?: string;
+  apellidoUsuario?: string;
+  rol: 'ADMINISTRADOR' | 'MIEMBRO';
+}
+
+/**
  * Obtiene todos los grupos desde el backend
  * 
  * @returns Promesa que resuelve a un array de objetos Group
@@ -277,52 +290,317 @@ export const deleteGroup = async (id: number): Promise<void> => {
 };
 
 /**
- * Une a un usuario a un grupo específico
+ * Obtiene todas las relaciones usuario-grupo
  * 
- * @param groupId - ID del grupo al que el usuario quiere unirse
- * @param userId - ID del usuario que se une al grupo
- * @returns Promesa que se resuelve cuando la operación es exitosa
- * @throws Error si la operación falla
+ * @returns Promesa que resuelve a un array de relaciones UsuarioGrupo
  */
-export const joinGroup = async (groupId: number, userId: number): Promise<void> => {
+export const fetchAllUsuarioGrupo = async (): Promise<UsuarioGrupo[]> => {
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     
-    // Verificar explícitamente que el token exista
+    const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al obtener relaciones usuario-grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en servicio de usuario-grupo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Crea una nueva relación usuario-grupo
+ * 
+ * @param usuarioGrupo - Datos de la relación a crear
+ * @returns Promesa que resuelve a la relación creada
+ */
+export const createUsuarioGrupo = async (usuarioGrupo: UsuarioGrupo): Promise<UsuarioGrupo> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
     if (!token) {
-      console.error('No se encontró token de autenticación en localStorage');
       throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
     }
     
-    console.log(`Usuario ${userId} intentando unirse al grupo ${groupId}`);
+    console.log('Creando relación usuario-grupo con datos:', JSON.stringify(usuarioGrupo, null, 2));
     
-    // Según la documentación, la ruta es /usuario-grupo
     const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        usuarioId: userId,
-        grupoId: groupId,
-        rol: 'Miembro' // Rol predeterminado para nuevos miembros
-      })
+      body: JSON.stringify(usuarioGrupo),
     });
     
-    console.log('Respuesta del servidor:', response.status, response.statusText);
-    
-    // Verificar si la operación fue exitosa
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Texto de error del servidor:', errorText);
-      throw new Error(`Error al unirse al grupo: ${errorText || response.statusText}`);
+      throw new Error(`Error al crear relación usuario-grupo: ${errorText || response.statusText}`);
     }
     
-    console.log(`Usuario ${userId} se unió exitosamente al grupo ${groupId}`);
+    return await response.json();
   } catch (error) {
-    // Registrar error específico para debugging
-    console.error(`Error al unirse al grupo con ID ${groupId}:`, error);
+    console.error('Error al crear relación usuario-grupo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene una relación usuario-grupo específica por su ID
+ * 
+ * @param id - ID de la relación
+ * @returns Promesa que resuelve a la relación UsuarioGrupo
+ */
+export const fetchUsuarioGrupoById = async (id: number): Promise<UsuarioGrupo> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al obtener relación usuario-grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al obtener relación usuario-grupo con ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Actualiza una relación usuario-grupo existente
+ * 
+ * @param id - ID de la relación a actualizar
+ * @param usuarioGrupo - Nuevos datos de la relación
+ * @returns Promesa que resuelve a la relación actualizada
+ */
+export const updateUsuarioGrupo = async (id: number, usuarioGrupo: UsuarioGrupo): Promise<UsuarioGrupo> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    if (!token) {
+      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+    }
+    
+    console.log(`Actualizando relación usuario-grupo con ID ${id}:`, JSON.stringify(usuarioGrupo, null, 2));
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(usuarioGrupo),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al actualizar relación usuario-grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al actualizar relación usuario-grupo con ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Elimina una relación usuario-grupo
+ * 
+ * @param id - ID de la relación a eliminar
+ * @returns Promesa que se resuelve cuando la eliminación es exitosa
+ */
+export const deleteUsuarioGrupo = async (id: number): Promise<{ mensaje: string }> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al eliminar relación usuario-grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al eliminar relación usuario-grupo con ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene todos los grupos a los que pertenece un usuario
+ * 
+ * @param usuarioId - ID del usuario
+ * @returns Promesa que resuelve a un array de relaciones UsuarioGrupo
+ */
+export const fetchGruposByUsuarioId = async (usuarioId: number): Promise<UsuarioGrupo[]> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/usuario/${usuarioId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al obtener grupos del usuario: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al obtener grupos del usuario con ID ${usuarioId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene todos los usuarios que pertenecen a un grupo
+ * 
+ * @param grupoId - ID del grupo
+ * @returns Promesa que resuelve a un array de relaciones UsuarioGrupo
+ */
+export const fetchUsuariosByGrupoId = async (grupoId: number): Promise<UsuarioGrupo[]> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/grupo/${grupoId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error al obtener usuarios del grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al obtener usuarios del grupo con ID ${grupoId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Verifica si existe una relación específica entre un usuario y un grupo
+ * 
+ * @param usuarioId - ID del usuario
+ * @param grupoId - ID del grupo
+ * @returns Promesa que resuelve a la relación UsuarioGrupo si existe
+ */
+export const fetchRelacionUsuarioGrupo = async (usuarioId: number, grupoId: number): Promise<UsuarioGrupo> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/relacion/${usuarioId}/${grupoId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        // No existe la relación, lo cual puede ser un caso válido
+        return null as any;
+      }
+      const errorText = await response.text();
+      throw new Error(`Error al verificar relación usuario-grupo: ${errorText || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error al verificar relación entre usuario ${usuarioId} y grupo ${grupoId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Método mejorado para unirse a un grupo
+ * Verifica si ya existe la relación antes de crearla
+ * 
+ * @param grupoId - ID del grupo al que el usuario quiere unirse
+ * @param usuarioId - ID del usuario que se une al grupo
+ * @returns Promesa que se resuelve cuando la operación es exitosa
+ */
+export const joinGroup = async (grupoId: number, usuarioId: number): Promise<UsuarioGrupo> => {
+  try {
+    const token = localStorage.getItem(config.session.tokenKey);
+    
+    if (!token) {
+      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+    }
+    
+    console.log(`Usuario ${usuarioId} intentando unirse al grupo ${grupoId}`);
+    
+    // Primero verificamos si ya existe la relación
+    try {
+      const existingRelation = await fetchRelacionUsuarioGrupo(usuarioId, grupoId);
+      if (existingRelation) {
+        console.log(`El usuario ${usuarioId} ya es miembro del grupo ${grupoId}`);
+        return existingRelation;
+      }
+    } catch (error) {
+      // Si da error 404 es porque no existe la relación, lo cual es lo esperado
+      console.log('No existe relación previa, procediendo a crear una nueva');
+    }
+    
+    // Crear nueva relación usuario-grupo
+    const newRelation = await createUsuarioGrupo({
+      usuarioId,
+      grupoId,
+      rol: 'MIEMBRO' // Rol predeterminado para nuevos miembros
+    });
+    
+    console.log(`Usuario ${usuarioId} se unió exitosamente al grupo ${grupoId}`);
+    
+    // Actualizar el contador de miembros en el grupo
+    try {
+      // Obtener el grupo actual
+      const grupo = await fetchGroupById(grupoId);
+      
+      // Incrementar el contador de miembros
+      if (grupo) {
+        const updatedGrupo = {
+          ...grupo,
+          num_miembros: (grupo.num_miembros || 0) + 1
+        };
+        
+        // No necesitamos esperar a que termine esta actualización
+        updateGroup(grupoId, updatedGrupo).catch(err => {
+          console.error('Error al actualizar contador de miembros:', err);
+        });
+      }
+    } catch (err) {
+      console.error('Error al actualizar contador de miembros:', err);
+      // No bloqueamos el flujo principal si esto falla
+    }
+    
+    return newRelation;
+  } catch (error) {
+    console.error(`Error al unirse al grupo con ID ${grupoId}:`, error);
     throw error;
   }
 };

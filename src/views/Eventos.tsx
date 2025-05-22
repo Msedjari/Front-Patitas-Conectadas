@@ -6,14 +6,8 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import EventoForm from '../components/eventos/EventoForm';
 import EventosList from '../components/eventos/EventosList';
-
-interface Evento {
-  id?: number;
-  nombre: string;
-  descripcion: string;
-  fecha: string;
-  ubicacion: string;
-}
+import DeleteEventoDialog from '../components/eventos/DeleteEventoDialog';
+import { fetchEventos, createEvento, updateEvento, deleteEvento, Evento } from '../services/eventosService';
 
 const Eventos: React.FC = () => {
   const { user } = useAuth();
@@ -22,37 +16,22 @@ const Eventos: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEvento, setEditingEvento] = useState<Evento | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [eventoToDelete, setEventoToDelete] = useState<Evento | null>(null);
   
   // Cargar eventos al montar el componente
   useEffect(() => {
-    fetchEventos();
+    fetchData();
   }, []);
   
-  // Función para cargar los eventos
-  const fetchEventos = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = localStorage.getItem(config.session.tokenKey);
-      
-      const response = await fetch(`${config.apiUrl}/eventos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setEventos(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error al cargar eventos:', err);
-      setError('No se pudieron cargar los eventos. Intenta de nuevo más tarde.');
-    } finally {
-      setLoading(false);
+      setEventos(await fetchEventos());
+    } catch (e) {
+      alert('Error al cargar eventos');
     }
+    setLoading(false);
   };
   
   // Limpiar el formulario
@@ -61,63 +40,22 @@ const Eventos: React.FC = () => {
   };
   
   // Manejar envío del formulario
-  const handleSubmitEvento = async (formData: Evento) => {
+  const handleSubmit = async (data: Omit<Evento, 'id' | 'creadorId'>) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = localStorage.getItem(config.session.tokenKey);
-      
-      if (editingEvento?.id) {
-        // Actualizar evento existente
-        const response = await fetch(`${config.apiUrl}/eventos/${editingEvento.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} - ${response.statusText}`);
-        }
-        
-        const updated = await response.json();
-        
-        // Actualizar el estado con el evento actualizado
-        setEventos(eventos.map(e => 
-          e.id === editingEvento.id ? updated : e
-        ));
-      } else {
-        // Crear nuevo evento
-        const response = await fetch(`${config.apiUrl}/eventos`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} - ${response.statusText}`);
-        }
-        
-        const newEvento = await response.json();
-        
-        // Agregar el nuevo evento al estado
-        setEventos([...eventos, newEvento]);
+      if (editingEvento && editingEvento.id) {
+        const updated = await updateEvento(editingEvento.id, data);
+        setEventos(eventos.map(ev => ev.id === updated.id ? updated : ev));
+      } else if (user?.id) {
+        const created = await createEvento(data, user.id);
+        setEventos([...eventos, created]);
       }
-      
-      // Resetear formulario y ocultarlo
-      resetForm();
       setShowForm(false);
-      setError(null);
-    } catch (err) {
-      console.error('Error al guardar evento:', err);
-      setError('No se pudo guardar el evento. Por favor, intenta de nuevo.');
-    } finally {
-      setLoading(false);
+      setEditingEvento(null);
+    } catch (e) {
+      alert('Error al guardar evento');
     }
+    setLoading(false);
   };
   
   // Preparar edición de evento
@@ -127,35 +65,22 @@ const Eventos: React.FC = () => {
   };
   
   // Eliminar evento
-  const handleDelete = async (evento: Evento) => {
-    if (!evento.id) return;
-    
-    if (!confirm(`¿Estás seguro de eliminar el evento "${evento.nombre}"?`)) {
-      return;
-    }
-    
-    try {
+  const handleDelete = (evento: Evento) => {
+    setEventoToDelete(evento);
+    setDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (eventoToDelete?.id) {
       setLoading(true);
-      const token = localStorage.getItem(config.session.tokenKey);
-      
-      const response = await fetch(`${config.apiUrl}/eventos/${evento.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      try {
+        await deleteEvento(eventoToDelete.id);
+        setEventos(eventos.filter(ev => ev.id !== eventoToDelete.id));
+        setDeleteDialogOpen(false);
+        setEventoToDelete(null);
+      } catch (e) {
+        alert('Error al eliminar evento');
       }
-      
-      // Eliminar del estado
-      setEventos(eventos.filter(e => e.id !== evento.id));
-      setError(null);
-    } catch (err) {
-      console.error('Error al eliminar evento:', err);
-      setError('No se pudo eliminar el evento. Por favor, intenta de nuevo.');
-    } finally {
       setLoading(false);
     }
   };
@@ -195,14 +120,14 @@ const Eventos: React.FC = () => {
         <ErrorMessage 
           message={error} 
           onClose={() => setError(null)}
-          onRetry={fetchEventos}
+          onRetry={fetchData}
         />
         
         {/* Formulario para crear/editar evento */}
         {showForm && (
           <EventoForm 
             initialData={editingEvento || undefined}
-            onSubmit={handleSubmitEvento}
+            onSubmit={handleSubmit}
             onCancel={() => {
               resetForm();
               setShowForm(false);
@@ -219,6 +144,8 @@ const Eventos: React.FC = () => {
           formatDate={formatDate}
           onCreateNew={() => setShowForm(true)}
         />
+        
+        <DeleteEventoDialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} onConfirm={confirmDelete} />
       </div>
     </div>
   );
