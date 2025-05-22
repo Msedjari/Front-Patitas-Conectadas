@@ -233,7 +233,7 @@ const Navbar: React.FC = () => {
                     {searchResults.map((user) => (
                       <Link
                         key={user.id}
-                        to={`/mi-perfil/${user.id}`}
+                        to={`/perfil/${user.id}`}
                         className="flex items-center space-x-3 p-3 hover:bg-[#f8ffe5] border-b border-gray-100 last:border-b-0"
                         onClick={() => {
                           setShowResults(false);
