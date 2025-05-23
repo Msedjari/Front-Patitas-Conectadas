@@ -25,6 +25,7 @@ import FileUploader from '../common/FileUploader';
 import { UserImagesCache, Post } from '../home/types';
 import PostList from '../home/PostList';
 import Valoraciones from './Valoraciones';
+import AddValoracion from './AddValoracion';
 
 /**
  * Componente de Perfil de usuario
@@ -63,6 +64,9 @@ const Perfil: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordMatchError, setPasswordMatchError] = useState<string | null>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [refreshValoraciones, setRefreshValoraciones] = useState(false);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -559,6 +563,10 @@ const Perfil: React.FC = () => {
     }
   };
   
+  const handleValoracionAdded = () => {
+    setRefreshValoraciones(prev => !prev);
+  };
+  
   /**
    * Render condicional si no hay perfil disponible y no está cargando
    * Muestra un mensaje de error amigable con opción para reintentar
@@ -737,7 +745,7 @@ const Perfil: React.FC = () => {
           {/* Descripción e intereses */}
           {editMode ? (
             <>
-              <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-[#3d7b6f] font-medium mb-2">
                     Nombre:
@@ -777,48 +785,48 @@ const Perfil: React.FC = () => {
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-[#3d7b6f] font-medium mb-2">
-                    Descripción:
-                  </label>
-                  <textarea
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                    rows={4}
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    placeholder="Describe quién eres..."
-                  ></textarea>
-                </div>
+              <div className="mb-4">
+                <label className="block text-[#3d7b6f] font-medium mb-2">
+                  Descripción:
+                </label>
+                <textarea
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                  rows={4}
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  placeholder="Describe quién eres..."
+                ></textarea>
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-[#3d7b6f] font-medium mb-2">
-                    Fecha de nacimiento:
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                    value={fechaNacimiento}
-                    onChange={(e) => setFechaNacimiento(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <button 
-                    type="button"
-                    className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
-                    onClick={() => setEditMode(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
-                    disabled={loading}
-                  >
-                    {loading ? 'Guardando...' : 'Guardar cambios'}
-                  </button>
-                </div>
-              </form>
+              <div className="mb-4">
+                <label className="block text-[#3d7b6f] font-medium mb-2">
+                  Fecha de nacimiento:
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                  value={fechaNacimiento}
+                  onChange={(e) => setFechaNacimiento(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex justify-end mt-6">
+                <button 
+                  type="button"
+                  className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
+                  onClick={() => setEditMode(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
+                  disabled={loading}
+                >
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
 
               {/* Formulario de cambio de contraseña separado */}
               <div className="mt-8 border-t pt-6">

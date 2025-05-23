@@ -3,20 +3,33 @@ import { config } from '../../config';
 
 interface Valoracion {
   id: number;
-  autor_id: number;
-  receptor_id: number;
+  autorId: number;
+  nombreAutor: string;
+  apellidoAutor: string;
+  receptorId: number;
+  nombreReceptor: string;
+  apellidoReceptor: string;
   puntuacion: number;
   contenido: string;
   fecha: string;
-  autor?: {
-    nombre: string;
-    apellido: string;
-    img?: string;
-  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Usuario {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
 }
 
 interface Perfil {
+  id: number;
+  usuario_id: number;
+  descripcion: string;
+  fecha_nacimiento: string;
   img?: string;
+  usuario?: Usuario;
 }
 
 interface ValoracionesProps {
@@ -27,46 +40,52 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
   const [valoraciones, setValoraciones] = useState<Valoracion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
+  const [perfilesAutores, setPerfilesAutores] = useState<Record<number, Perfil>>({});
 
-  useEffect(() => {
-    // Cargar el caché de imágenes al montar el componente
-    const loadUserImagesCache = () => {
-      const cachedImages = localStorage.getItem('userImagesCache');
-      if (cachedImages) {
-        setUserImagesCache(JSON.parse(cachedImages));
-      }
-    };
-    loadUserImagesCache();
-
-    // Suscribirse a cambios en el caché
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'userImagesCache' && e.newValue) {
-        setUserImagesCache(JSON.parse(e.newValue));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('userImageUpdated', ((e: CustomEvent) => {
-      if (e.detail && e.detail.userId && e.detail.imagePath) {
-        setUserImagesCache(prev => ({
-          ...prev,
-          [e.detail.userId]: e.detail.imagePath
-        }));
-      }
-    }) as EventListener);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userImageUpdated', handleStorageChange);
-    };
-  }, []);
+  const formatearFecha = (fecha: string) => {
+    const ahora = new Date();
+    const fechaValoracion = new Date(fecha);
+    const diffDias = Math.floor((ahora.getTime() - fechaValoracion.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Si es de hoy, mostrar solo la hora
+    if (diffDias === 0) {
+      return fechaValoracion.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+    
+    // Si es de ayer
+    if (diffDias === 1) {
+      return 'Ayer';
+    }
+    
+    // Si es de esta semana
+    if (diffDias < 7) {
+      return fechaValoracion.toLocaleDateString('es-ES', { weekday: 'long' });
+    }
+    
+    // Si es de este año
+    if (fechaValoracion.getFullYear() === ahora.getFullYear()) {
+      const dia = fechaValoracion.getDate().toString().padStart(2, '0');
+      const mes = (fechaValoracion.getMonth() + 1).toString().padStart(2, '0');
+      return `${dia}/${mes}`;
+    }
+    
+    // Si es de otro año
+    const dia = fechaValoracion.getDate().toString().padStart(2, '0');
+    const mes = (fechaValoracion.getMonth() + 1).toString().padStart(2, '0');
+    const año = fechaValoracion.getFullYear();
+    return `${dia}/${mes}/${año}`;
+  };
 
   useEffect(() => {
     const fetchValoraciones = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem(config.session.tokenKey);
+        
+        // 1. Obtener las valoraciones
         const response = await fetch(`${config.apiUrl}/valoraciones/usuarios/${userId}/recibidas`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -78,17 +97,44 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
         }
 
         const data = await response.json();
-        
-        // Enriquecer las valoraciones con las imágenes del caché
-        const valoracionesConImagenes = data.map((valoracion: Valoracion) => ({
-          ...valoracion,
-          autor: {
-            ...valoracion.autor,
-            img: userImagesCache[valoracion.autor_id]
-          }
-        }));
+        setValoraciones(data);
 
-        setValoraciones(valoracionesConImagenes);
+        // 2. Obtener IDs únicos de autores
+        const autoresIds = [...new Set(data.map((valoracion: Valoracion) => valoracion.autorId))].filter(id => id !== undefined) as number[];
+        
+        // 3. Obtener perfiles de autores
+        const perfilesPromises = autoresIds.map(async (autorId: number): Promise<Record<number, Perfil> | null> => {
+          if (!autorId) return null;
+          
+          try {
+            // Obtener perfil
+            const perfilResponse = await fetch(`${config.apiUrl}/usuarios/${autorId}/perfiles`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (perfilResponse.ok) {
+              const perfil = await perfilResponse.json() as Perfil;
+              return { [autorId]: perfil };
+            }
+            return null;
+          } catch (error) {
+            console.error(`Error al cargar perfil del autor ${autorId}:`, error);
+            return null;
+          }
+        });
+
+        // 4. Esperar todas las peticiones y combinar resultados
+        const perfilesResultados = await Promise.all(perfilesPromises);
+        const perfilesMap = perfilesResultados.reduce<Record<number, Perfil>>((acc, curr) => {
+          if (curr) {
+            return { ...acc, ...curr };
+          }
+          return acc;
+        }, {});
+
+        setPerfilesAutores(perfilesMap);
       } catch (error) {
         console.error('Error:', error);
         setError('No se pudieron cargar las valoraciones');
@@ -98,7 +144,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
     };
 
     fetchValoraciones();
-  }, [userId, userImagesCache]);
+  }, [userId]);
 
   if (loading) {
     return (
@@ -133,10 +179,10 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                  {valoracion.autor?.img ? (
+                  {perfilesAutores[valoracion.autorId]?.img ? (
                     <img
-                      src={`${config.apiUrl}/uploads/${valoracion.autor.img}`}
-                      alt={`${valoracion.autor.nombre} ${valoracion.autor.apellido}`}
+                      src={`${config.apiUrl}/uploads/${perfilesAutores[valoracion.autorId].img}`}
+                      alt={`${valoracion.nombreAutor} ${valoracion.apellidoAutor}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -147,7 +193,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[#e0e0e0]">
                       <span className="text-[#a0a0a0] text-lg">
-                        {valoracion.autor?.nombre?.[0] || '?'}
+                        {valoracion.nombreAutor?.[0] || '?'}
                       </span>
                     </div>
                   )}
@@ -157,7 +203,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium text-[#3d7b6f]">
-                      {valoracion.autor?.nombre} {valoracion.autor?.apellido}
+                      {valoracion.nombreAutor} {valoracion.apellidoAutor}
                     </h4>
                     <div className="flex items-center mt-1">
                       {[...Array(5)].map((_, index) => (
@@ -175,11 +221,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
                     </div>
                   </div>
                   <span className="text-sm text-[#575350]">
-                    {new Date(valoracion.fecha).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatearFecha(valoracion.fecha)}
                   </span>
                 </div>
                 <p className="mt-2 text-[#2a2827]">{valoracion.contenido}</p>
@@ -192,4 +234,4 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
   );
 };
 
-export default Valoraciones; 
+export default Valoraciones;
