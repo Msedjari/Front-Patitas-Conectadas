@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { config } from '../../config';
 import { UserImagesCache } from './types';
 import { getUserImage } from './HomeUtils';
+import EmojiPickerComponent from '../common/EmojiPicker';
 
 interface PostFormProps {
   onPostSubmit: (formData: FormData) => Promise<void>;
@@ -18,8 +19,28 @@ const PostForm: React.FC<PostFormProps> = ({ onPostSubmit, userImagesCache, user
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const userId = user?.id;
+
+  // Efecto para cerrar el emoji picker cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleEmojiSelect = (emoji: string) => {
+    setPostText(prev => prev + emoji);
+  };
 
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +130,7 @@ const PostForm: React.FC<PostFormProps> = ({ onPostSubmit, userImagesCache, user
             }}
           />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <textarea
             value={postText}
             onChange={(e) => {
@@ -119,6 +140,22 @@ const PostForm: React.FC<PostFormProps> = ({ onPostSubmit, userImagesCache, user
             className={`w-full bg-[#f8ffe5] text-[#575350] rounded-lg px-4 py-2.5 min-h-[40px] resize-none focus:outline-none focus:ring-1 ${validationError ? 'ring-red-500 border-red-500' : 'focus:ring-[#6cda84]'}`}
             placeholder={`¿Qué estás pensando, ${userName?.split(' ')[0] || 'Usuario'}?`}
           />
+          <button
+            type="button"
+            className="absolute right-2 top-2 text-[#3d7b6f] hover:text-[#6cda84]"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <div ref={emojiPickerRef}>
+            <EmojiPickerComponent
+              onEmojiSelect={handleEmojiSelect}
+              showEmojiPicker={showEmojiPicker}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          </div>
         </div>
       </div>
       

@@ -1,130 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  fetchRelacionUsuarioGrupo, 
-  joinGroup, 
-  deleteUsuarioGrupo, 
-  UsuarioGrupo 
-} from '../../services/groupService';
+import { usuarioGrupoService, UsuarioGrupo } from '../../services/usuarioGrupoService';
 
 interface BotonUnirseGrupoProps {
   grupoId: number;
-  onMembershipChange?: () => void;
-  className?: string;
+  onStatusChange?: (isMiembro: boolean, relacion?: UsuarioGrupo) => void;
 }
 
-const BotonUnirseGrupo: React.FC<BotonUnirseGrupoProps> = ({ 
-  grupoId, 
-  onMembershipChange,
-  className = "bg-[#3d7b6f] text-white px-4 py-2 rounded hover:bg-[#2a5a50] transition-colors"
-}) => {
-  const { user, isAuthenticated } = useAuth();
-  const [isMember, setIsMember] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [membership, setMembership] = useState<UsuarioGrupo | null>(null);
+const BotonUnirseGrupo: React.FC<BotonUnirseGrupoProps> = ({ grupoId, onStatusChange }) => {
+  const { user } = useAuth();
+  const [isMiembro, setIsMiembro] = useState(false);
+  const [relacion, setRelacion] = useState<UsuarioGrupo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Verificar si el usuario ya es miembro del grupo
   useEffect(() => {
-    const checkMembership = async () => {
-      if (!isAuthenticated || !user?.id) {
+    const verificarMembresia = async () => {
+      if (!user?.id) {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
-        setError(null);
-        
-        const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
-        const relation = await fetchRelacionUsuarioGrupo(userId, grupoId);
-        
-        if (relation) {
-          setIsMember(true);
-          setMembership(relation);
-        } else {
-          setIsMember(false);
-          setMembership(null);
-        }
-      } catch (err) {
-        console.error('Error al verificar membresía:', err);
-        // Si es error 404, significa que no es miembro
-        if (err instanceof Error && err.message.includes('404')) {
-          setIsMember(false);
-        } else {
-          setError('Error al verificar si perteneces al grupo');
-        }
+        const grupos = await usuarioGrupoService.getGruposByUsuario(user.id);
+        const miGrupo = grupos.find(g => g.grupoId === grupoId);
+        setIsMiembro(!!miGrupo);
+        setRelacion(miGrupo || null);
+        if (onStatusChange) onStatusChange(!!miGrupo, miGrupo);
+      } catch (error) {
+        console.error('Error al verificar membresía:', error);
       } finally {
         setLoading(false);
       }
     };
-    
-    checkMembership();
-  }, [grupoId, user, isAuthenticated]);
 
-  // Manejar unirse o abandonar grupo
-  const handleToggleMembership = async () => {
-    if (!isAuthenticated) {
-      // Redirigir a login si no está autenticado
-      window.location.href = '/login';
-      return;
-    }
-    
-    if (!user?.id) {
-      setError('No se pudo identificar al usuario');
-      return;
-    }
-    
+    verificarMembresia();
+  }, [user?.id, grupoId]);
+
+  const handleToggleMembresia = async () => {
+    if (!user?.id) return;
+
+    setActionLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
-      
-      if (isMember && membership?.id) {
-        // Abandonar el grupo
-        await deleteUsuarioGrupo(membership.id);
-        setIsMember(false);
-        setMembership(null);
+      if (isMiembro && relacion) {
+        await usuarioGrupoService.abandonarGrupo(relacion.id);
+        setIsMiembro(false);
+        setRelacion(null);
+        if (onStatusChange) onStatusChange(false);
       } else {
-        // Unirse al grupo
-        const newMembership = await joinGroup(grupoId, userId);
-        setIsMember(true);
-        setMembership(newMembership);
+        const nuevaRelacion = await usuarioGrupoService.unirseAGrupo(user.id, grupoId);
+        setIsMiembro(true);
+        setRelacion(nuevaRelacion);
+        if (onStatusChange) onStatusChange(true, nuevaRelacion);
       }
-      
-      // Notificar cambio si se proporciona callback
-      if (onMembershipChange) {
-        onMembershipChange();
-      }
-    } catch (err) {
-      console.error('Error al cambiar membresía:', err);
-      setError(isMember 
-        ? 'No se pudo abandonar el grupo. Intenta de nuevo.' 
-        : 'No se pudo unir al grupo. Intenta de nuevo.'
-      );
+    } catch (error) {
+      console.error('Error al cambiar membresía:', error);
+      alert(error instanceof Error ? error.message : 'Error al procesar la solicitud');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
+  if (loading) {
+    return <button className="px-4 py-2 bg-gray-300 text-gray-600 rounded-md" disabled>Cargando...</button>;
+  }
+
   return (
-    <>
-      <button
-        onClick={handleToggleMembership}
-        disabled={loading}
-        className={`${className} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-      >
-        {loading ? (
-          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-        ) : null}
-        {isMember ? 'Abandonar grupo' : 'Unirse al grupo'}
-      </button>
-      
-      {error && (
-        <div className="text-red-500 text-sm mt-1">{error}</div>
-      )}
-    </>
+    <button
+      onClick={handleToggleMembresia}
+      disabled={actionLoading || (relacion?.rol === 'ADMINISTRADOR')}
+      className={`px-4 py-2 rounded-md transition-colors ${
+        relacion?.rol === 'ADMINISTRADOR'
+          ? 'bg-gray-500 cursor-not-allowed text-white'
+          : isMiembro 
+            ? 'bg-red-500 hover:bg-red-600 text-white' 
+            : 'bg-[#6cda84] hover:bg-[#5aa86d] text-white'
+      }`}
+    >
+      {actionLoading 
+        ? 'Procesando...' 
+        : relacion?.rol === 'ADMINISTRADOR'
+          ? 'Administrador'
+          : (isMiembro ? 'Abandonar grupo' : 'Unirse al grupo')}
+    </button>
   );
 };
 
