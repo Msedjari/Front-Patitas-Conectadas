@@ -54,6 +54,15 @@ const Perfil: React.FC = () => {
   const [postsError, setPostsError] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [email, setEmail] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordMatchError, setPasswordMatchError] = useState<string | null>(null);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -95,6 +104,9 @@ const Perfil: React.FC = () => {
       
       const userData = await response.json();
       setProfileUser(userData);
+      setEmail(userData.email || '');
+      setNombre(userData.nombre || '');
+      setApellido(userData.apellido || '');
     } catch (error) {
       console.error('Error al cargar datos del usuario:', error);
       setError('Error al cargar los datos del usuario');
@@ -143,6 +155,9 @@ const Perfil: React.FC = () => {
         const userData = await userResponse.json();
         console.log('Datos del usuario cargados:', userData);
         setProfileUser(userData);
+        setEmail(userData.email || '');
+        setNombre(userData.nombre || '');
+        setApellido(userData.apellido || '');
         
         // Intentar primero con el endpoint de perfiles
         let profileResponse = await fetch(`${config.apiUrl}/perfiles/${targetUserId}`, {
@@ -280,7 +295,37 @@ const Perfil: React.FC = () => {
       setError(null);
       setSuccessMessage('');
       
-      // Crear FormData para enviar los datos
+      // Actualizar datos básicos del usuario si han cambiado
+      const userUpdates: any = {};
+      if (nombre !== profileUser?.nombre) userUpdates.nombre = nombre;
+      if (apellido !== profileUser?.apellido) userUpdates.apellido = apellido;
+      if (email !== profileUser?.email) userUpdates.email = email;
+
+      if (Object.keys(userUpdates).length > 0) {
+        try {
+          const userResponse = await fetch(`${config.apiUrl}/usuarios/${user.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': getAuthHeaders(false)['Authorization']
+            },
+            body: JSON.stringify(userUpdates)
+          });
+
+          if (!userResponse.ok) {
+            const errorData = await userResponse.json();
+            throw new Error(errorData.error || 'Error al actualizar los datos del usuario');
+          }
+
+          // Actualizar el estado local del usuario
+          setProfileUser((prev: any) => ({ ...prev, ...userUpdates }));
+        } catch (error) {
+          console.error('Error al actualizar los datos del usuario:', error);
+          throw new Error('Error al actualizar los datos del usuario. Por favor, intenta de nuevo.');
+        }
+      }
+      
+      // Crear FormData para enviar los datos del perfil
       const formData = new FormData();
       
       // Asegurarnos de que los campos coincidan exactamente con lo que espera el backend
@@ -297,7 +342,7 @@ const Perfil: React.FC = () => {
       if (selectedImage) {
         formData.append('imagen', selectedImage);
       }
-
+      
       let response;
       let responseData;
 
@@ -433,6 +478,84 @@ const Perfil: React.FC = () => {
     } catch (error) {
       console.error('Error al formatear fecha:', error);
       return 'Error en formato de fecha';
+    }
+  };
+  
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 1) {
+      return 'La contraseña no puede estar vacía';
+    }
+    return null;
+  };
+
+  // Función para validar coincidencia de contraseñas en tiempo real
+  const validatePasswordMatch = (newPass: string, confirmPass: string) => {
+    if (newPass && confirmPass && newPass !== confirmPass) {
+      setPasswordMatchError('Las contraseñas no coinciden');
+    } else {
+      setPasswordMatchError(null);
+    }
+  };
+
+  // Actualizar la validación cuando cambie cualquiera de las contraseñas
+  useEffect(() => {
+    validatePasswordMatch(newPassword, confirmPassword);
+  }, [newPassword, confirmPassword]);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    // Validar que la contraseña actual no esté vacía
+    if (!currentPassword) {
+      setPasswordError('Debes ingresar tu contraseña actual');
+      return;
+    }
+
+    // Validar que la nueva contraseña no esté vacía
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setPasswordError(passwordError);
+      return;
+    }
+
+    // Validar que las contraseñas coincidan
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
+    try {
+      console.log('Enviando solicitud de cambio de contraseña...');
+      const response = await fetch(`${config.apiUrl}/usuarios/${user?.id}/password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem(config.session.tokenKey)}`
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al cambiar la contraseña');
+      }
+
+      setPasswordSuccess('Contraseña actualizada correctamente');
+      // Limpiar todos los campos de contraseña
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMatchError(null);
+    } catch (error) {
+      console.error('Error al cambiar la contraseña:', error);
+      setPasswordError(error instanceof Error ? error.message : 'Error al cambiar la contraseña');
+      // Limpiar solo la contraseña actual en caso de error
+      setCurrentPassword('');
     }
   };
   
@@ -599,7 +722,7 @@ const Perfil: React.FC = () => {
               <h1 className="text-2xl font-semibold text-[#3d7b6f]">
                 {profileUser?.nombre || "Usuario"} {profileUser?.apellido || ""}
               </h1>
-              <p className="text-[#575350]">{profileUser?.email || ""}</p>
+              {!editMode && <p className="text-[#575350]">{profileUser?.email || ""}</p>}
             </div>
             {isOwnProfile && (
             <button
@@ -613,49 +736,165 @@ const Perfil: React.FC = () => {
 
           {/* Descripción e intereses */}
           {editMode ? (
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-[#3d7b6f] font-medium mb-2">
-                  Descripción:
-                </label>
-                <textarea
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                  rows={4}
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Describe quién eres..."
-                ></textarea>
-              </div>
+            <>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Nombre:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Tu nombre"
+                  />
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-[#3d7b6f] font-medium mb-2">
-                  Fecha de nacimiento:
-                </label>
-                <input
-                  type="date"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                  value={fechaNacimiento}
-                  onChange={(e) => setFechaNacimiento(e.target.value)}
-                />
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Apellido:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    value={apellido}
+                    onChange={(e) => setApellido(e.target.value)}
+                    placeholder="Tu apellido"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Email:
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu@email.com"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Descripción:
+                  </label>
+                  <textarea
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    rows={4}
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe quién eres..."
+                  ></textarea>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Fecha de nacimiento:
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    value={fechaNacimiento}
+                    onChange={(e) => setFechaNacimiento(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <button 
+                    type="button"
+                    className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
+                    onClick={() => setEditMode(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
+                    disabled={loading}
+                  >
+                    {loading ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Formulario de cambio de contraseña separado */}
+              <div className="mt-8 border-t pt-6">
+                <h3 className="text-[#3d7b6f] font-medium mb-4">Cambiar Contraseña</h3>
+                
+                {passwordError && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {passwordError}
+                  </div>
+                )}
+                
+                {passwordSuccess && (
+                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    {passwordSuccess}
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[#3d7b6f] font-medium mb-2">
+                      Contraseña Actual:
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[#3d7b6f] font-medium mb-2">
+                      Nueva Contraseña:
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[#3d7b6f] font-medium mb-2">
+                      Confirmar Nueva Contraseña:
+                    </label>
+                    <input
+                      type="password"
+                      className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7] ${
+                        passwordMatchError ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                    {passwordMatchError && (
+                      <p className="text-red-500 text-sm mt-1">{passwordMatchError}</p>
+                    )}
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={handlePasswordChange}
+                    className="w-full px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58]"
+                    disabled={!!passwordMatchError}
+                  >
+                    Cambiar Contraseña
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex justify-end mt-6">
-                <button 
-                  type="button"
-                  className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
-                  onClick={() => setEditMode(false)}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
-                  disabled={loading}
-                >
-                  {loading ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
+            </>
           ) : (
             <div>
               <div className="mb-6">
@@ -671,19 +910,12 @@ const Perfil: React.FC = () => {
                   <p className="text-[#2a2827]">{formatDate(profile.fecha_nacimiento)}</p>
                 </div>
               )}
-              
-              <div className="mb-6">
-                <h3 className="text-[#3d7b6f] font-medium mb-2">Miembro desde</h3>
-                <p className="text-[#2a2827]">
-                  {profile?.fecha_creacion ? formatDate(profile.fecha_creacion) : "Fecha no disponible"}
-                </p>
-              </div>
             </div>
           )}
               
-              {/* Componente de Valoraciones */}
-              {!editMode && (
-                <Valoraciones userId={parseInt(id || user?.id || '0')} />
+          {/* Componente de Valoraciones */}
+          {!editMode && (
+            <Valoraciones userId={parseInt(id || user?.id || '0')} />
           )}
               </div>
             </div>
