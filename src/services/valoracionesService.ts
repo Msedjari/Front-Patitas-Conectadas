@@ -8,7 +8,7 @@ export interface Valoracion {
   receptorId: number;
   nombreReceptor: string;
   apellidoReceptor: string;
-  puntuacion: string;
+  puntuacion: number;
   contenido: string;
   fecha: string;
   createdAt: string;
@@ -65,7 +65,7 @@ export const valoracionesService = {
   },
 
   // Crear una valoración
-  crearValoracion: async (autorId: number, receptorId: number, puntuacion: string, contenido: string): Promise<Valoracion> => {
+  crearValoracion: async (autorId: number, receptorId: number, puntuacion: number, contenido: string): Promise<Valoracion> => {
     try {
       const token = localStorage.getItem(config.session.tokenKey);
       if (!token) throw new Error('No hay token de autenticación');
