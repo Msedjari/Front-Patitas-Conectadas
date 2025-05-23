@@ -18,14 +18,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchCurrentUserProfile, updateUserProfile, createUserProfile, Profile } from '../../services/profileService';
-import { fetchPostsByUser } from '../../services/postService';
+import { fetchPostsByUser, deletePost } from '../../services/postService';
 import { config } from '../../config';
 import { Link, useParams } from 'react-router-dom';
 import FileUploader from '../common/FileUploader';
-import { UserImagesCache, Post } from '../home/types';
+import { UserImagesCache, Post, CommentData } from '../home/types';
 import PostList from '../home/PostList';
 import Valoraciones from './Valoraciones';
 import AddValoracion from './AddValoracion';
+import { createComment } from '../../services/commentService';
 
 /**
  * Componente de Perfil de usuario
@@ -64,7 +65,6 @@ const Perfil: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordMatchError, setPasswordMatchError] = useState<string | null>(null);
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [refreshValoraciones, setRefreshValoraciones] = useState(false);
   
@@ -567,6 +567,31 @@ const Perfil: React.FC = () => {
     setRefreshValoraciones(prev => !prev);
   };
   
+  // --- FUNCIÓN PARA ENVIAR COMENTARIOS EN POSTS DEL PERFIL ---
+  const handleCommentSubmit = async (commentData: CommentData) => {
+    try {
+      if (!user?.id) {
+        setPostsError('No se pudo enviar el comentario: Error al obtener tu identificación de usuario');
+        return;
+      }
+      commentData.creadorId = Number(user.id);
+      await createComment(commentData);
+      // No es necesario actualizar el estado aquí, PostItem recarga los comentarios
+    } catch (err) {
+      setPostsError(err instanceof Error ? err.message : 'No se pudo enviar el comentario. Por favor, intenta de nuevo.');
+    }
+  };
+  
+  // --- FUNCIÓN PARA ELIMINAR POSTS DEL PERFIL ---
+  const handleDeletePost = async (postId: number) => {
+    try {
+      await deletePost(postId);
+      setUserPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    } catch (err) {
+      setPostsError('No se pudo eliminar la publicación. Por favor, intenta de nuevo.');
+    }
+  };
+  
   /**
    * Render condicional si no hay perfil disponible y no está cargando
    * Muestra un mensaje de error amigable con opción para reintentar
@@ -956,6 +981,8 @@ const Perfil: React.FC = () => {
                 userImagesCache={userImagesCache}
                 userId={user?.id || 1}
                 loading={loadingPosts}
+                onCommentSubmit={handleCommentSubmit}
+                onDeletePost={handleDeletePost}
               />
             </div>
           </div>
