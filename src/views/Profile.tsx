@@ -56,18 +56,13 @@ const Profile: React.FC = () => {
   }, [profileId]);
 
   useEffect(() => {
-    console.log("Verificando estado de seguimiento:", { 
-      userId: user?.id, 
-      profileId, 
-      isDifferentProfile: user?.id !== profileId 
-    });
+    if (!user?.id || !profileId) return;
     
-    if (user?.id && profileId && user.id !== profileId) {
+    if (user.id !== profileId) {
       setLoadingFollowStatus(true);
       const checkFollowingStatus = async () => {
         try {
           const seguidos = await seguidosService.obtenerSeguidosIds(user.id);
-          console.log("Seguidos obtenidos:", seguidos);
           const isUserCurrentlyFollowing = seguidos.some(rel => rel.usuarioQueEsSeguidoId === profileId);
           setIsFollowing(isUserCurrentlyFollowing);
         } catch (error) {
@@ -110,16 +105,11 @@ const Profile: React.FC = () => {
     return <div className="container mx-auto py-8 max-w-6xl px-4">Cargando perfil...</div>;
   }
 
-  if (!profileUser) {
+  if (!profileUser || !profileId) {
     return <div className="container mx-auto py-8 max-w-6xl px-4">Perfil no encontrado o error al cargar.</div>;
   }
 
-  console.log("Renderizando perfil:", { 
-    profileUser, 
-    currentUserId: user?.id, 
-    profileId, 
-    shouldShowButton: user?.id && profileId && user.id !== profileId 
-  });
+  const isOwnProfile = user?.id === profileId;
 
   return (
     <div className="container mx-auto py-8 max-w-6xl px-4">
@@ -167,6 +157,12 @@ const Profile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Sección de Mascotas */}
+      <ProfileMascotas 
+        userId={profileId} 
+        isOwnProfile={isOwnProfile} 
+      />
     </div>
   );
 };

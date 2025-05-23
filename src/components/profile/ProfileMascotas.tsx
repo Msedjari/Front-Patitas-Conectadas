@@ -33,45 +33,11 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
         setLoading(true);
         setError(null);
         
-        // Obtener mascotas del usuario usando el servicio
         const data = await fetchMascotasByUserId(userId);
         setMascotas(data);
       } catch (err) {
         console.error('Error al cargar mascotas:', err);
         setError('No se pudieron cargar las mascotas. Intenta de nuevo más tarde.');
-        
-        // Para desarrollo, usar datos de prueba si ocurre un error
-        if (import.meta.env.DEV) {
-          console.log('Cargando datos de prueba para desarrollo');
-          setTimeout(() => {
-            setMascotas([
-              {
-                id: 1,
-                nombre: 'Luna',
-                especie: 'Perro',
-                raza: 'Labrador',
-                edad: 3,
-                genero: 'Hembra',
-                descripcion: 'Luna es muy juguetona y le encanta correr en el parque.',
-                foto: 'https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-                usuario_id: userId,
-                fecha_registro: '2023-05-15T00:00:00.000Z'
-              },
-              {
-                id: 2,
-                nombre: 'Simba',
-                especie: 'Gato',
-                raza: 'Siamés',
-                edad: 2,
-                genero: 'Macho',
-                descripcion: 'Simba es un gato muy tranquilo que adora dormir al sol.',
-                foto: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-                usuario_id: userId,
-                fecha_registro: '2023-06-20T00:00:00.000Z'
-              }
-            ]);
-          }, 500);
-        }
       } finally {
         setLoading(false);
       }
@@ -97,10 +63,7 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
     
     try {
       setDeleteError(null);
-      // Pasar el userId como segundo parámetro según la actualización del servicio
       await deleteMascota(mascota.id!, userId);
-      
-      // Actualizar la lista de mascotas después de eliminar
       setMascotas(prevMascotas => prevMascotas.filter(m => m.id !== mascota.id));
     } catch (err) {
       console.error('Error al eliminar mascota:', err);
@@ -132,7 +95,6 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
       );
     }
     
-    // Mostrar grid de mascotas
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {mascotas.map(mascota => (

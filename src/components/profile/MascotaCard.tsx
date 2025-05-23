@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BsPencil, BsTrash } from 'react-icons/bs';
 import { Mascota } from '../../services/mascotasService';
-import { config } from '../../config';
 
 interface MascotaCardProps {
   mascota: Mascota;
@@ -31,11 +30,11 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
       {/* Imagen de la mascota */}
       <div className="relative h-48 bg-gray-100">
         <img
-          src={mascota.foto || config.images.defaultPetImage}
+          src={mascota.foto || '/default-pet.svg'}
           alt={mascota.nombre}
           className="w-full h-full object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = config.images.defaultPetImage;
+            (e.target as HTMLImageElement).src = '/default-pet.svg';
           }}
         />
         
@@ -88,9 +87,11 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
             <span className="font-medium">Edad:</span> {getEdadTexto(mascota.edad)}
           </p>
           
-          <p className="text-gray-700">
-            <span className="font-medium">Género:</span> {mascota.genero}
-          </p>
+          {mascota.genero && (
+            <p className="text-gray-700">
+              <span className="font-medium">Género:</span> {mascota.genero}
+            </p>
+          )}
         </div>
         
         {mascota.descripcion && (
