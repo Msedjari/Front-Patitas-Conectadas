@@ -9,6 +9,7 @@ interface PostListProps {
   loading: boolean;
   onLoadMore?: () => void;
   onCommentSubmit?: (commentData: CommentData) => void;
+  onDeletePost?: (postId: number) => void;
 }
 
 /**
@@ -20,7 +21,8 @@ const PostList: React.FC<PostListProps> = ({
   userId,
   loading,
   onLoadMore,
-  onCommentSubmit
+  onCommentSubmit,
+  onDeletePost
 }) => {
   // Efecto para depurar información de posts y caché de imágenes
   useEffect(() => {
@@ -87,6 +89,7 @@ const PostList: React.FC<PostListProps> = ({
             userImagesCache={userImagesCache} 
             userId={userId}
             onCommentSubmit={onCommentSubmit}
+            onDeletePost={onDeletePost}
           />
         ))}
       </div>

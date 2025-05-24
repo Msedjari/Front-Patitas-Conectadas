@@ -7,12 +7,15 @@ import PostContent from './PostContent';
 import CommentsButton from './CommentsButton';
 import CommentsSection from './CommentsSection';
 import { config } from '../../config';
+import PostOptions from './PostOptions';
+import { guardarPost, quitarPostGuardado, estaPostGuardado } from '../../services/usuarioPostService';
 
 interface PostItemProps {
   post: Post;
   userImagesCache: UserImagesCache;
   userId: number | string;
   onCommentSubmit?: (commentData: CommentData) => void;
+  onDeletePost?: (postId: number) => void;
 }
 
 /**
@@ -22,7 +25,8 @@ const PostItem: React.FC<PostItemProps> = ({
   post, 
   userImagesCache, 
   userId,
-  onCommentSubmit 
+  onCommentSubmit,
+  onDeletePost
 }) => {
   // Estado local para controlar los comentarios
   const [comments, setComments] = useState<Comment[]>([]);
@@ -32,8 +36,8 @@ const PostItem: React.FC<PostItemProps> = ({
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentJustSubmitted, setCommentJustSubmitted] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   // Información del creador (puede venir directamente en el post o en el objeto creador)
   const creadorId = post.creadorId || post.creador?.id;
@@ -99,6 +103,22 @@ const PostItem: React.FC<PostItemProps> = ({
     }
   }, [commentJustSubmitted]);
   
+  // Efecto para verificar si el post está guardado al montar el componente
+  useEffect(() => {
+    const verificarGuardado = async () => {
+      try {
+        const estaGuardado = await estaPostGuardado(Number(userId), post.id);
+        setGuardado(estaGuardado);
+      } catch (error) {
+        console.error('Error al verificar si el post está guardado:', error);
+      }
+    };
+
+    if (userId && post.id) {
+      verificarGuardado();
+    }
+  }, [userId, post.id]);
+  
   // Manejador para alternar la visualización de comentarios
   const toggleComments = () => {
     setShowComments(prev => !prev);
@@ -126,67 +146,57 @@ const PostItem: React.FC<PostItemProps> = ({
     }
   };
 
-  // Función para eliminar el post
-  const handleDeletePost = async () => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este post? Esta acción no se puede deshacer.')) return;
-    setDeleting(true);
-    setDeleteError(null);
+  // Función para manejar guardar/quitar de guardados
+  const handleGuardarClick = async () => {
+    if (!userId || guardando) return;
+
     try {
-      const token = localStorage.getItem(config.session.tokenKey);
-      const response = await fetch(`${config.apiUrl}/posts/${post.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'No se pudo eliminar el post');
+      setGuardando(true);
+      if (guardado) {
+        await quitarPostGuardado(Number(userId), post.id);
+        setGuardado(false);
+      } else {
+        await guardarPost(Number(userId), post.id);
+        setGuardado(true);
       }
-      // Opcional: recargar la página o quitar el post del estado global
-      window.location.reload();
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Error desconocido al eliminar el post');
+      console.error('Error al guardar/quitar post:', error);
     } finally {
-      setDeleting(false);
+      setGuardando(false);
     }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-      {/* Cabecera del post - Información del autor */}
-      <PostHeader 
-        creadorId={creadorId}
-        creadorNombre={creadorNombre}
-        creadorApellido={creadorApellido}
-        fecha={fecha}
-        userImagesCache={userImagesCache}
-        postId={post.id}
-      />
-      
-      {/* Botón eliminar solo si el post es del usuario actual */}
-      {Number(userId) === Number(creadorId) && (
-        <div className="flex justify-end px-4 pt-2">
-          <button
-            className="text-red-600 hover:text-white border border-red-600 hover:bg-red-600 font-semibold py-1 px-3 rounded transition disabled:opacity-50"
-            onClick={handleDeletePost}
-            disabled={deleting}
-          >
-            {deleting ? 'Eliminando...' : 'Eliminar'}
-          </button>
+      {/* Cabecera del post - Información del autor y menú de opciones */}
+      <div className="flex justify-between items-center p-4 pb-0">
+        <div className="flex-1">
+          <PostHeader 
+            creadorId={creadorId}
+            creadorNombre={creadorNombre}
+            creadorApellido={creadorApellido}
+            fecha={fecha}
+            userImagesCache={userImagesCache}
+            postId={post.id}
+          />
         </div>
-      )}
-      {deleteError && (
-        <div className="text-red-600 text-sm px-4 pb-2">{deleteError}</div>
-      )}
-      
+        {/* Menú de opciones: solo eliminar si es el creador, solo guardar si NO es el creador */}
+        <div className="ml-2">
+          <PostOptions
+            esCreador={Number(userId) === Number(creadorId)}
+            postId={post.id}
+            onEliminar={() => onDeletePost && onDeletePost(post.id)}
+            onGuardar={handleGuardarClick}
+            guardado={guardado}
+          />
+        </div>
+      </div>
       {/* Contenido del post - Texto e imagen */}
       <PostContent 
         contenido={post.contenido}
         imagen={post.img}
         postId={post.id}
       />
-      
       {/* Botones de interacción */}
       <div className="px-4 py-2 border-t border-gray-100 flex">
         <CommentsButton
@@ -195,7 +205,6 @@ const PostItem: React.FC<PostItemProps> = ({
           isActive={showComments}
         />
       </div>
-      
       {/* Sección de comentarios */}
       {showComments && (
         <div>
@@ -208,7 +217,6 @@ const PostItem: React.FC<PostItemProps> = ({
           />
         </div>
       )}
-      
       {/* Formulario de comentarios */}
       <CommentForm 
         postId={post.id} 

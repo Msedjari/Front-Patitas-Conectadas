@@ -6,6 +6,7 @@ import PostForm from './PostForm';
 import PostList from './PostList';
 import '../../responsive.css';
 import { createComment } from '../../services/commentService';
+import { deletePost } from '../../services/postService';
 
 /**
  * Componente de Página de Inicio (Feed)
@@ -110,24 +111,21 @@ const Home: React.FC = () => {
       const data = await response.json();
       
       // Ordenar los posts por fecha de creación (más recientes primero)
-      const sortedPosts = data.sort((a: Post, b: Post) => {
-        // Obtener las fechas de creación, usando el campo que esté disponible
-        const dateA = new Date(a.fecha_creacion || a.fechaCreacion || a.createdAt || a.fecha || '');
-        const dateB = new Date(b.fecha_creacion || b.fechaCreacion || b.createdAt || b.fecha || '');
-        
-        // Comparar las fechas en milisegundos
+      const sortedPosts: Post[] = (data as Post[]).sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.fecha || '');
+        const dateB = new Date(b.createdAt || b.fecha || '');
         return dateB.getTime() - dateA.getTime();
       });
       
-      console.log('Posts ordenados:', sortedPosts.map(post => ({
+      console.log('Posts ordenados:', sortedPosts.map((post: Post) => ({
         id: post.id,
-        fecha: post.fecha_creacion || post.fechaCreacion || post.createdAt || post.fecha
+        fecha: post.createdAt || post.fecha
       })));
       
       setPosts(sortedPosts);
       
       // Obtener IDs únicos de usuarios para cargar sus imágenes
-      const userIds = Array.from(new Set(sortedPosts.map(post => post.creadorId || post.creador?.id).filter(Boolean)));
+      const userIds: number[] = Array.from(new Set(sortedPosts.map((post: Post) => post.creadorId || post.creador?.id).filter((id): id is number => typeof id === 'number')));
       console.log('IDs de usuarios a cargar:', userIds);
       await fetchUserImages(userIds);
       
@@ -350,6 +348,18 @@ const Home: React.FC = () => {
     // Aquí iría la lógica para cargar más publicaciones
   };
 
+  /**
+   * Maneja la eliminación de un post
+   */
+  const handleDeletePost = async (postId: number) => {
+    try {
+      await deletePost(postId);
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    } catch (err) {
+      setError('No se pudo eliminar la publicación. Por favor, intenta de nuevo.');
+    }
+  };
+
   return (
     <div>
       {/* Mensaje de error si existe */}
@@ -370,11 +380,9 @@ const Home: React.FC = () => {
       
       {/* Formulario para crear post */}
       <PostForm 
-        userId={user?.id || 1}
         userName={user?.name || user?.nombre}
         userImagesCache={userImagesCache}
         onPostSubmit={handlePostSubmit}
-        isSubmitting={isSubmitting}
       />
       
       {/* Feed de publicaciones */}
@@ -385,6 +393,7 @@ const Home: React.FC = () => {
         loading={loading}
         onLoadMore={handleLoadMore}
         onCommentSubmit={handleCommentSubmit}
+        onDeletePost={handleDeletePost}
       />
     </div>
   );

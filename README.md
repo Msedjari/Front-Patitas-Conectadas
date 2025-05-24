@@ -1,125 +1,162 @@
 # Patitas Conectadas 🐾
 
-## Description
-Patitas Conectadas is a comprehensive web platform connecting animal shelters, rescue organizations, adopters, and animal lovers in a unified ecosystem. Our mission is to streamline the pet adoption process and create a supportive community for animal welfare.
+## Descripción
+Patitas Conectadas es una plataforma web integral que conecta refugios de animales, organizaciones de rescate, adoptantes y amantes de los animales en un ecosistema unificado. Nuestra misión es agilizar el proceso de adopción de mascotas y crear una comunidad solidaria para el bienestar animal.
 
-## Key Features
-- **🔒 Advanced Authentication System**: Secure user accounts with personalized experiences
-- **🏠 Shelter Management**: Complete profiles and animal inventory for rescue organizations
-- **👥 Community Network**: Connect with groups sharing common interests in animal welfare
-- **📅 Event Planning**: Organize and discover adoption events, fundraisers, and volunteer opportunities
-- **🔔 Real-time Notifications**: Stay updated on adoption applications and community activities
-- **💬 Integrated Messaging System**: Seamless communication between shelters and potential adopters
+## Características Principales
+- **🔒 Sistema de Autenticación Avanzado**: Cuentas de usuario seguras con experiencias personalizadas
+- **🏠 Gestión de Refugios**: Perfiles completos e inventario de animales para organizaciones de rescate
+- **👥 Red Comunitaria**: Conecta con grupos que comparten intereses comunes en el bienestar animal
+- **📅 Planificación de Eventos**: Organiza y descubre eventos de adopción, recaudaciones y oportunidades de voluntariado
+- **🔔 Notificaciones en Tiempo Real**: Mantente actualizado sobre solicitudes de adopción y actividades comunitarias
+- **💬 Sistema de Mensajería Integrado**: Comunicación fluida entre refugios y potenciales adoptantes
 
-## Tech Stack
-- **Frontend**: React 18 with TypeScript for type-safe code
-- **Build Tool**: Vite for lightning-fast development and optimized production builds
-- **Styling**: Tailwind CSS with custom theme configuration
-- **State Management**: React Context API with custom hooks
-- **Routing**: React Router v6 with protected routes
-- **Animations**: Framer Motion for fluid UI transitions
-- **Forms**: React Hook Form with Zod validation
+## Stack Tecnológico
+- **Frontend**: React 19 con TypeScript para código tipo-seguro
+- **Build Tool**: Vite 6 para desarrollo rápido y builds optimizados
+- **Styling**: Tailwind CSS con configuración de tema personalizada
+- **State Management**: React Context API con hooks personalizados
+- **Routing**: React Router v6 con rutas protegidas
+- **Animations**: Framer Motion para transiciones fluidas de UI
+- **Forms**: React Hook Form con validación Zod
+- **Emojis**: Emoji Picker React para selección de emojis
+- **Dates**: date-fns para manejo de fechas
+- **HTTP Client**: Axios para peticiones HTTP
+- **Icons**: React Icons para iconografía
 
-## Installation & Setup
+## Dependencias Principales
+```json
+{
+  "dependencies": {
+    "axios": "^1.6.7",
+    "date-fns": "^3.3.1",
+    "emoji-picker-react": "^4.12.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^6.22.2"
+  }
+}
+```
 
-### Prerequisites
-- Node.js (v16.0.0 or higher)
-- npm or yarn
+## Dependencias de Desarrollo
+```json
+{
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.2.0"
+  }
+}
+```
 
-### Development Environment
-1. Clone the repository
+## Instalación
+
+### Requisitos Previos
+- Node.js (v16.0.0 o superior)
+- npm o yarn
+
+### Pasos de Instalación
+1. Clonar el repositorio
    ```bash
    git clone https://github.com/Msedjari/patitas-conectadas.git
    cd patitas-conectadas
    ```
 
-2. Install dependencies
+2. Instalar dependencias
    ```bash
    npm install
-   # or
+   # o
    yarn install
    ```
 
-3. Configure environment variables
-   Create a `.env` file in the project root:
+3. Configurar variables de entorno
+   Crear un archivo `.env` en la raíz del proyecto:
    ```
-   VITE_API_URL=your_api_endpoint
-   VITE_STORAGE_KEY=local_storage_key
+   VITE_API_URL=tu_endpoint_api
+   VITE_STORAGE_KEY=clave_almacenamiento_local
    ```
 
-4. Start the development server
+4. Iniciar el servidor de desarrollo
    ```bash
    npm run dev
-   # or
+   # o
    yarn dev
    ```
-   The application will be available at `http://localhost:5173/`
+   La aplicación estará disponible en `http://localhost:5173/`
 
-5. Build for production
+5. Construir para producción
    ```bash
    npm run build
-   # or
+   # o
    yarn build
    ```
 
-## Project Structure
-  ```bash
-  ├── public/ # Static assets
+## Estructura del Proyecto
+```bash
+├── public/ # Archivos estáticos
 ├── src/
-│ ├── assets/ # Images, fonts, and other resources
-│ ├── components/ # Reusable UI components
-│ │ ├── common/ # Shared components (buttons, inputs, etc.)
-│ │ ├── layout/ # Layout components (Navbar, Footer, etc.)
-│ │ └── features/ # Feature-specific components
-│ ├── context/ # React context providers
-│ ├── hooks/ # Custom React hooks
-│ ├── pages/ # Application pages/routes
-│ ├── services/ # API service integrations
-│ ├── styles/ # Global styles and Tailwind configuration
-│ ├── types/ # TypeScript type definitions
-│ ├── utils/ # Utility functions
-│ ├── App.tsx # Main application component
-│ ├── main.tsx # Application entry point
-│ └── vite-env.d.ts # Vite type declarations
-├── .eslintrc.json # ESLint configuration
-├── .gitignore # Git ignore rules
-├── index.html # HTML entry point
-├── package.json # Project dependencies and scripts
-├── postcss.config.js # PostCSS configuration
-├── tailwind.config.js # Tailwind CSS configuration
-├── tsconfig.json # TypeScript configuration
-└── vite.config.ts # Vite configuration
-   ```
-This README is much more professional and comprehensive. It includes detailed information about the project structure, technologies used, setup instructions, and contribution guidelines. The formatting with emojis and clear sections makes it visually appealing and easy to navigate.
+│   ├── assets/ # Imágenes, fuentes y otros recursos
+│   ├── components/ # Componentes UI reutilizables
+│   │   ├── common/ # Componentes compartidos (botones, inputs, etc.)
+│   │   ├── layout/ # Componentes de layout (Navbar, Footer, etc.)
+│   │   └── features/ # Componentes específicos de funcionalidades
+│   ├── context/ # Proveedores de contexto React
+│   ├── hooks/ # Hooks personalizados de React
+│   ├── pages/ # Páginas/rutas de la aplicación
+│   ├── services/ # Integraciones con API
+│   ├── styles/ # Estilos globales y configuración de Tailwind
+│   ├── types/ # Definiciones de tipos TypeScript
+│   ├── utils/ # Funciones de utilidad
+│   ├── App.tsx # Componente principal de la aplicación
+│   ├── main.tsx # Punto de entrada de la aplicación
+│   └── vite-env.d.ts # Declaraciones de tipos de Vite
+├── .eslintrc.json # Configuración de ESLint
+├── .gitignore # Reglas de Git ignore
+├── index.html # Punto de entrada HTML
+├── package.json # Dependencias y scripts del proyecto
+├── postcss.config.js # Configuración de PostCSS
+├── tailwind.config.js # Configuración de Tailwind CSS
+├── tsconfig.json # Configuración de TypeScript
+└── vite.config.ts # Configuración de Vite
+```
 
-## Performance Optimizations
-- Code-splitting for faster initial load times
-- Lazy loading of components and routes
-- Optimized asset loading and caching strategies
-- Server-side rendering support (optional)
+## Optimizaciones de Rendimiento
+- Code-splitting para tiempos de carga inicial más rápidos
+- Carga perezosa de componentes y rutas
+- Estrategias optimizadas de carga y caché de assets
+- Soporte para renderizado del lado del servidor (opcional)
 
-## Best Practices
-- Comprehensive test coverage with Vitest and React Testing Library
-- Strict TypeScript configuration for robust type checking
-- Responsive design implementation for all screen sizes
-- Accessible UI components following WCAG guidelines
-- Internationalization support for multiple languages
+## Mejores Prácticas
+- Cobertura completa de pruebas con Vitest y React Testing Library
+- Configuración estricta de TypeScript para verificación robusta de tipos
+- Implementación de diseño responsive para todos los tamaños de pantalla
+- Componentes UI accesibles siguiendo las directrices WCAG
+- Soporte para internacionalización en múltiples idiomas
 
-## Contributing
-We welcome contributions from the community! To contribute:
+## Contribuir
+¡Bienvenidas las contribuciones de la comunidad! Para contribuir:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Haz fork del repositorio
+2. Crea tu rama de feature (`git checkout -b feature/amazing-feature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
+4. Push a la rama (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
 
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+## Licencia
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
 
-## Contact & Support
-- **Developer**: Msedjari
-- **Project Repository**: [github.com/Msedjari/patitas-conectadas](https://github.com/Msedjari/Front-Patitas-Conectadas)
+## Contacto y Soporte
+- **Desarrollador**: Msedjari
+- **Repositorio del Proyecto**: [github.com/Msedjari/patitas-conectadas](https://github.com/Msedjari/Front-Patitas-Conectadas)
 
 ---
 
