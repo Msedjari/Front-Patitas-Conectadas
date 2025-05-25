@@ -639,12 +639,27 @@ const Perfil: React.FC = () => {
     }));
   };
 
+  const handleMascotaImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMascotaFormData(prev => ({
+          ...prev,
+          foto: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleEditMascota = (mascota: Mascota) => {
     setEditingMascota(mascota);
     setMascotaFormData({
       nombre: mascota.nombre,
       genero: mascota.genero,
-      raza: mascota.raza
+      raza: mascota.raza,
+      foto: mascota.foto || ''
     });
     setShowMascotaForm(true);
   };
