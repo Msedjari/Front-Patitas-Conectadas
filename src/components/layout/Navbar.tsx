@@ -148,6 +148,16 @@ const Navbar: React.FC = () => {
           setSearchError(null);
           const results = await searchUsers(searchQuery);
           setSearchResults(results);
+          
+          // Actualizar el caché de imágenes para los resultados de búsqueda
+          results.forEach(user => {
+            if (user.img) {
+              const newCache = { ...userImagesCache, [user.id]: user.img };
+              setUserImagesCache(newCache);
+              localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+            }
+          });
+          
           setShowResults(true);
         } catch (error) {
           console.error('Error al buscar usuarios:', error);
@@ -243,7 +253,7 @@ const Navbar: React.FC = () => {
                       >
                         <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
                           <img 
-                            src={getUserImage(userImagesCache, user.id)} 
+                            src={getUserImage(userImagesCache, Number(user.id))} 
                             alt={user.nombre} 
                             className="h-full w-full object-cover"
                             onError={(e) => {
@@ -278,13 +288,6 @@ const Navbar: React.FC = () => {
             <Link to="/" className="flex-1 px-3 py-2 rounded-md text-[#6cda84] hover:bg-white transition-colors flex justify-center border-b-2 border-[#6cda84]">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2.1L1 12h3v9h6v-6h4v6h6v-9h3L12 2.1zm0 2.691l6 5.4V19h-2v-6H8v6H6v-8.809l6-5.4z"/>
-              </svg>
-            </Link>
-            
-            {/* Shelter/Rescue icon */}
-            <Link to="/protectoras" className="flex-1 px-3 py-2 rounded-md text-[#3d7b6f] hover:bg-white transition-colors flex justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm4-9h-3V8a1 1 0 10-2 0v4a1 1 0 001 1h4a1 1 0 100-2z"/>
               </svg>
             </Link>
             
@@ -341,8 +344,8 @@ const Navbar: React.FC = () => {
               >
                 <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden border-2 border-[#6cda84]">
                   <img 
-                    src={getUserImage(userImagesCache, user.id)} 
-                    alt={user.nombre || user.name || "Usuario"} 
+                    src={getUserImage(userImagesCache, Number(user.id))} 
+                    alt={user.nombre} 
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -364,8 +367,8 @@ const Navbar: React.FC = () => {
                     >
                       <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
                         <img 
-                          src={getUserImage(userImagesCache, user.id)} 
-                          alt={user.nombre || user.name || "Usuario"} 
+                          src={getUserImage(userImagesCache, Number(user.id))} 
+                          alt={user.nombre} 
                           className="h-full w-full object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;

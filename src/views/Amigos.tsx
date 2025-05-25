@@ -19,7 +19,24 @@ const Amigos: React.FC = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
   const searchTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const loadUserImagesCache = () => {
+      const cachedImages = localStorage.getItem('userImagesCache');
+      if (cachedImages) {
+        setUserImagesCache(JSON.parse(cachedImages));
+      }
+    };
+    loadUserImagesCache();
+  }, []);
+
+  const updateUserImagesCache = (userId: number, imagePath: string) => {
+    const newCache = { ...userImagesCache, [userId]: imagePath };
+    setUserImagesCache(newCache);
+    localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+  };
 
   const actualizarListaSeguidos = async () => {
     if (!user?.id) return;
@@ -33,6 +50,14 @@ const Amigos: React.FC = () => {
         return null;
       }));
       const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
+      
+      // Actualizar el caché de imágenes para cada usuario
+      details.forEach(detail => {
+        if (detail.img) {
+          updateUserImagesCache(detail.id, detail.img);
+        }
+      });
+      
       setSeguidosDetails(details);
     } catch (error) {
       console.error('Error al cargar seguidos:', error);
@@ -103,7 +128,16 @@ const Amigos: React.FC = () => {
       setSearchError(null);
       try {
         const results = await searchUsers(query);
-        setSearchResults(results.filter((result: User) => result.id !== (user?.id || 0)));
+        const filteredResults = results.filter((result: User) => result.id !== (user?.id || 0));
+        
+        // Actualizar el caché de imágenes para los resultados de búsqueda
+        filteredResults.forEach(result => {
+          if (result.img) {
+            updateUserImagesCache(result.id, result.img);
+          }
+        });
+        
+        setSearchResults(filteredResults);
       } catch (error) {
         console.error('Error en la búsqueda:', error);
         setSearchError('Error al buscar usuarios.');
@@ -152,7 +186,7 @@ const Amigos: React.FC = () => {
                     <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center flex-grow">
                         <img
-                          src={getUserImage({}, result.id)}
+                          src={getUserImage(userImagesCache, result.id)}
                           alt={result.nombre || 'Usuario'}
                           className="w-12 h-12 rounded-full object-cover mr-4"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}
@@ -206,7 +240,7 @@ const Amigos: React.FC = () => {
                 <div key={seguido.id} className="bg-white rounded-lg shadow p-4 flex items-center justify-between hover:shadow-md transition-shadow">
                   <div className="flex items-center flex-grow">
                     <img
-                      src={getUserImage({}, seguido.id)}
+                      src={getUserImage(userImagesCache, seguido.id)}
                       alt={seguido.nombre || 'Usuario'}
                       className="w-12 h-12 rounded-full object-cover mr-4"
                       onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}

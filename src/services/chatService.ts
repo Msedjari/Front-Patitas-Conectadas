@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { config } from '../config';
+import { api } from './api';
 
 export interface Mensaje {
   id: number;
@@ -14,7 +13,7 @@ export interface Mensaje {
 
 export const chatService = {
   enviarMensaje: async (emisorId: number, receptorId: number, contenido: string): Promise<Mensaje> => {
-    const response = await axios.post(`${config}/chat/enviar`, {
+    const response = await api.post('/chat/enviar', {
       emisorId,
       receptorId,
       contenido
@@ -23,32 +22,32 @@ export const chatService = {
   },
 
   obtenerConversacion: async (usuario1Id: number, usuario2Id: number): Promise<Mensaje[]> => {
-    const response = await axios.get(`${config}/chat/conversacion/${usuario1Id}/${usuario2Id}`);
+    const response = await api.get(`/chat/conversacion/${usuario1Id}/${usuario2Id}`);
     return response.data;
   },
 
   marcarVistos: async (usuarioId: number, otroUsuarioId: number): Promise<{ message: string }> => {
-    const response = await axios.put(`${config}/chat/marcar-vistos/${usuarioId}/${otroUsuarioId}`);
+    const response = await api.put(`/chat/marcar-vistos/${usuarioId}/${otroUsuarioId}`);
     return response.data;
   },
 
   obtenerNoVistos: async (usuarioId: number): Promise<Mensaje[]> => {
-    const response = await axios.get(`${config}/chat/no-vistos/${usuarioId}`);
+    const response = await api.get(`/chat/no-vistos/${usuarioId}`);
     return response.data;
   },
 
   obtenerEnviados: async (usuarioId: number): Promise<Mensaje[]> => {
-    const response = await axios.get(`${config}/chat/enviados/${usuarioId}`);
+    const response = await api.get(`/chat/enviados/${usuarioId}`);
     return response.data;
   },
 
   obtenerRecibidos: async (usuarioId: number): Promise<Mensaje[]> => {
-    const response = await axios.get(`${config}/chat/recibidos/${usuarioId}`);
+    const response = await api.get(`/chat/recibidos/${usuarioId}`);
     return response.data;
   },
 
   eliminarConversacion: async (usuario1Id: number, usuario2Id: number): Promise<{ message: string }> => {
-    const response = await axios.delete(`${config}/chat/eliminar/${usuario1Id}/${usuario2Id}`);
+    const response = await api.delete(`/chat/eliminar/${usuario1Id}/${usuario2Id}`);
     return response.data;
   }
 }; 
