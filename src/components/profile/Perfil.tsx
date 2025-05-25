@@ -30,6 +30,7 @@ import { obtenerMascotasPorUsuario, Mascota, createMascota, fetchMascotasByUserI
 import MascotaCard from './MascotaCard';
 import { BsPlusLg } from 'react-icons/bs';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaPaw } from 'react-icons/fa';
+import BotonSeguir from '../common/BotonSeguir';
 
 /**
  * Componente de Perfil de usuario
@@ -848,14 +849,24 @@ const Perfil: React.FC = () => {
               </h1>
               {!editMode && <p className="text-[#575350]">{profileUser?.email || ""}</p>}
             </div>
-            {isOwnProfile && (
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
-              >
-                {editMode ? "Cancelar" : "Editar perfil"}
-              </button>
-            )}
+            <div className="flex items-center gap-4">
+              {!isOwnProfile && user && (
+                <div className="mt-4">
+                  <BotonSeguir 
+                    usuarioId={Number(id)} 
+                    nombreUsuario={`${profile?.nombre || ''} ${profile?.apellido || ''}`}
+                  />
+                </div>
+              )}
+              {isOwnProfile && (
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
+                >
+                  {editMode ? "Cancelar" : "Editar perfil"}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Contenido del perfil (edición o visualización) */}
@@ -1049,7 +1060,7 @@ const Perfil: React.FC = () => {
                   userId={parseInt(id || user?.id || '0')} 
                   key={refreshValoraciones ? 'refresh' : 'normal'}
                 />
-                {!isOwnProfile && user?.id && (
+                {!isOwnProfile && user && (
                   <div className="mt-6">
                     <AddValoracion 
                       autorId={parseInt(user.id)}
