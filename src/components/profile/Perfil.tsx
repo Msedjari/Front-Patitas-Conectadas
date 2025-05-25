@@ -21,12 +21,16 @@ import { fetchCurrentUserProfile, updateUserProfile, createUserProfile, Profile 
 import { fetchPostsByUser, deletePost } from '../../services/postService';
 import { config } from '../../config';
 import { Link, useParams } from 'react-router-dom';
-import FileUploader from '../common/FileUploader';
 import { UserImagesCache, Post, CommentData } from '../home/types';
 import PostList from '../home/PostList';
 import Valoraciones from './Valoraciones';
 import AddValoracion from './AddValoracion';
 import { createComment } from '../../services/commentService';
+import { obtenerMascotasPorUsuario, Mascota, createMascota, fetchMascotasByUserId, updateMascota, deleteMascota } from '../../services/mascotasService';
+import MascotaCard from './MascotaCard';
+import { BsPlusLg } from 'react-icons/bs';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaPaw } from 'react-icons/fa';
+import BotonSeguir from '../common/BotonSeguir';
 
 /**
  * Componente de Perfil de usuario
@@ -67,6 +71,18 @@ const Perfil: React.FC = () => {
   const [passwordMatchError, setPasswordMatchError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [refreshValoraciones, setRefreshValoraciones] = useState(false);
+  const [mascotas, setMascotas] = useState<Mascota[]>([]);
+  const [loadingMascotas, setLoadingMascotas] = useState(false);
+  const [errorMascotas, setErrorMascotas] = useState<string | null>(null);
+  const [showMascotaForm, setShowMascotaForm] = useState(false);
+  const [mascotaFormData, setMascotaFormData] = useState<Partial<Mascota>>({
+    nombre: '',
+    genero: '',
+    raza: ''
+  });
+  const [mascotaError, setMascotaError] = useState<string | null>(null);
+  const [mascotaSuccess, setMascotaSuccess] = useState<string | null>(null);
+  const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -283,6 +299,29 @@ const Perfil: React.FC = () => {
     
     loadUserPosts();
   }, [user, id]);
+  
+  // Cargar mascotas del usuario
+  useEffect(() => {
+    const loadMascotas = async () => {
+      const targetUserId = id || user?.id;
+      if (!targetUserId) return;
+      
+      setLoadingMascotas(true);
+      setErrorMascotas(null);
+      
+      try {
+        const mascotasData = await fetchMascotasByUserId(parseInt(targetUserId));
+        setMascotas(mascotasData);
+      } catch (error) {
+        console.error('Error al cargar mascotas:', error);
+        setErrorMascotas('Error al cargar las mascotas del usuario');
+      } finally {
+        setLoadingMascotas(false);
+      }
+    };
+
+    loadMascotas();
+  }, [id, user?.id]);
   
   /**
    * Maneja el envío del formulario de edición del perfil
@@ -592,6 +631,110 @@ const Perfil: React.FC = () => {
     }
   };
   
+  // Manejar cambios en el formulario de mascota
+  const handleMascotaInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setMascotaFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleMascotaImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMascotaFormData(prev => ({
+          ...prev,
+          foto: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditMascota = (mascota: Mascota) => {
+    setEditingMascota(mascota);
+    setMascotaFormData({
+      nombre: mascota.nombre,
+      genero: mascota.genero,
+      raza: mascota.raza,
+      foto: mascota.foto || ''
+    });
+    setShowMascotaForm(true);
+  };
+
+  const handleDeleteMascota = async (mascota: Mascota) => {
+    if (!user?.id || !mascota.id) return;
+    
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${mascota.nombre}?`)) {
+      return;
+    }
+    
+    try {
+      setMascotaError(null);
+      await deleteMascota(parseInt(user.id), mascota.id);
+      setMascotas(prev => prev.filter(m => m.id !== mascota.id));
+      setMascotaSuccess('Mascota eliminada exitosamente');
+    } catch (error) {
+      console.error('Error al eliminar mascota:', error);
+      setMascotaError('Error al eliminar la mascota');
+    }
+  };
+
+  const handleMascotaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMascotaError(null);
+    setMascotaSuccess(null);
+
+    if (!user?.id) {
+      setMascotaError('No se pudo identificar al usuario');
+      return;
+    }
+
+    try {
+      if (editingMascota?.id) {
+        // Actualizar mascota existente
+        const mascotaActualizada = await updateMascota(
+          parseInt(user.id),
+          editingMascota.id,
+          {
+            nombre: mascotaFormData.nombre || '',
+            genero: mascotaFormData.genero || '',
+            raza: mascotaFormData.raza || ''
+          }
+        );
+        
+        setMascotas(prev => prev.map(m => 
+          m.id === editingMascota.id ? mascotaActualizada : m
+        ));
+        setMascotaSuccess('Mascota actualizada exitosamente');
+      } else {
+        // Crear nueva mascota
+        const nuevaMascota = await createMascota(parseInt(user.id), {
+          nombre: mascotaFormData.nombre || '',
+          genero: mascotaFormData.genero || '',
+          raza: mascotaFormData.raza || ''
+        });
+
+        setMascotas(prev => [...prev, nuevaMascota]);
+        setMascotaSuccess('Mascota registrada exitosamente');
+      }
+
+      setShowMascotaForm(false);
+      setEditingMascota(null);
+      setMascotaFormData({
+        nombre: '',
+        genero: '',
+        raza: ''
+      });
+    } catch (error) {
+      console.error('Error al guardar mascota:', error);
+      setMascotaError('Error al guardar la mascota');
+    }
+  };
+  
   /**
    * Render condicional si no hay perfil disponible y no está cargando
    * Muestra un mensaje de error amigable con opción para reintentar
@@ -652,122 +795,81 @@ const Perfil: React.FC = () => {
    */
   return (
     <div className="min-h-screen w-full bg-gray-50">
-      <div className="w-full px-0 sm:px-0 lg:px-0 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
-          {/* Columna izquierda - Perfil */}
-          <div className="lg:col-span-1 w-full">
-            <div className="bg-white rounded-lg shadow p-6 w-full">
-      {/* Mensaje de éxito */}
-      {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-          <span>{successMessage}</span>
-          <button onClick={() => setSuccessMessage('')} className="text-green-700">
-            <span className="text-xl">&times;</span>
-          </button>
-        </div>
-      )}
-      
-        <div className="relative">
-          <div className="h-40 bg-[#9fe0b7]"></div>
-          <div className="absolute -bottom-16 left-6">
-            <div className="relative group">
-              <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-gray-200">
-                {imagePreview ? (
-                  <img 
-                    src={imagePreview} 
-                    alt="Foto de perfil" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                                console.error('Error al cargar la imagen:', imagePreview);
-                      const target = e.target as HTMLImageElement;
-                                target.onerror = null;
-                      target.src = 'https://via.placeholder.com/150?text=Error';
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-[#e0e0e0] text-[#a0a0a0]">
-                    <span className="text-4xl">?</span>
-                  </div>
-                )}
-              </div>
-              
-              {editMode && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-xs font-medium">Editar foto</span>
+      {/* Cabecera del perfil con imagen de portada y foto de perfil */}
+      <div className="relative w-full h-64 bg-[#9fe0b7]">
+        <div className="absolute -bottom-16 left-8">
+          <div className="relative group">
+            <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-gray-200 shadow-lg">
+              {imagePreview ? (
+                <img 
+                  src={imagePreview} 
+                  alt="Foto de perfil" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Error al cargar la imagen:', imagePreview);
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = 'https://via.placeholder.com/150?text=Error';
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full bg-[#e0e0e0] text-[#a0a0a0]">
+                  <span className="text-4xl">?</span>
                 </div>
               )}
             </div>
+            
+            {editMode && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-xs font-medium">Editar foto</span>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Sección de información general */}
-        <div className="pt-20 px-6 pb-6">
-                {/* Sección de imagen de perfil en modo edición */}
-          {editMode && (
-            <div className="bg-[#f8ffe5] p-4 rounded-lg mb-6 border border-[#9fe0b7]">
-                    <h3 className="text-[#3d7b6f] font-medium mb-2">Imagen de perfil</h3>
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-[#9fe0b7]">
-                    {imagePreview ? (
-                                <img src={imagePreview} alt="Vista previa" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#e0e0e0]">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-grow">
-                        {user && (
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setSelectedImage(file);
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setImagePreview(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="block w-full text-sm text-gray-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-full file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-[#6cda84] file:text-white
-                              hover:file:bg-[#38cd58]"
-                          />
-                        )}
-                        <p className="text-xs text-[#575350] mt-1">Sube una foto desde tu ordenador.</p>
-                </div>
-              </div>
+      {/* Contenido principal */}
+      <div className="container mx-auto px-4 pt-20 pb-8">
+        {/* Sección de información del perfil */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          {/* Mensaje de éxito */}
+          {successMessage && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+              <span>{successMessage}</span>
+              <button onClick={() => setSuccessMessage('')} className="text-green-700">
+                <span className="text-xl">&times;</span>
+              </button>
             </div>
           )}
 
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-2xl font-semibold text-[#3d7b6f]">
+              <h1 className="text-3xl font-bold text-[#3d7b6f]">
                 {profileUser?.nombre || "Usuario"} {profileUser?.apellido || ""}
               </h1>
               {!editMode && <p className="text-[#575350]">{profileUser?.email || ""}</p>}
             </div>
-            {isOwnProfile && (
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58]"
-            >
-              {editMode ? "Cancelar" : "Editar perfil"}
-            </button>
-            )}
+            <div className="flex items-center gap-4">
+              {!isOwnProfile && user && (
+                <div className="mt-4">
+                  <BotonSeguir 
+                    usuarioId={Number(id)} 
+                    nombreUsuario={`${profile?.nombre || ''} ${profile?.apellido || ''}`}
+                  />
+                </div>
+              )}
+              {isOwnProfile && (
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
+                >
+                  {editMode ? "Cancelar" : "Editar perfil"}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Descripción e intereses */}
+          {/* Contenido del perfil (edición o visualización) */}
           {editMode ? (
             <>
             <form onSubmit={handleSubmit}>
@@ -810,48 +912,91 @@ const Perfil: React.FC = () => {
                   />
                 </div>
 
-              <div className="mb-4">
-                <label className="block text-[#3d7b6f] font-medium mb-2">
-                  Descripción:
-                </label>
-                <textarea
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                  rows={4}
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Describe quién eres..."
-                ></textarea>
-              </div>
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Foto de perfil:
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
+                      <img 
+                        src={imagePreview || '/default-avatar.svg'} 
+                        alt="Foto de perfil" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/default-avatar.svg';
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setSelectedImage(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setImagePreview(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="profile-image-input"
+                      />
+                      <label
+                        htmlFor="profile-image-input"
+                        className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] cursor-pointer inline-block"
+                      >
+                        Cambiar foto
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-[#3d7b6f] font-medium mb-2">
-                  Fecha de nacimiento:
-                </label>
-                <input
-                  type="date"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                  value={fechaNacimiento}
-                  onChange={(e) => setFechaNacimiento(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex justify-end mt-6">
-                <button 
-                  type="button"
-                  className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
-                  onClick={() => setEditMode(false)}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
-                  disabled={loading}
-                >
-                  {loading ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Descripción:
+                  </label>
+                  <textarea
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    rows={4}
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe quién eres..."
+                  ></textarea>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[#3d7b6f] font-medium mb-2">
+                    Fecha de nacimiento:
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                    value={fechaNacimiento}
+                    onChange={(e) => setFechaNacimiento(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex justify-end mt-6">
+                  <button 
+                    type="button"
+                    className="px-4 py-2 border border-[#6cda84] text-[#6cda84] rounded-lg mr-2 hover:bg-[#f8ffe5] transition-colors"
+                    onClick={() => setEditMode(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-4 py-2 bg-[#6cda84] text-white rounded-lg hover:bg-[#38cd58] transition-colors"
+                    disabled={loading}
+                  >
+                    {loading ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </div>
+              </form>
 
               {/* Formulario de cambio de contraseña separado */}
               <div className="mt-8 border-t pt-6">
@@ -929,8 +1074,8 @@ const Perfil: React.FC = () => {
               </div>
             </>
           ) : (
-            <div>
-              <div className="mb-6">
+            <div className="space-y-6">
+              <div>
                 <h3 className="text-[#3d7b6f] font-medium mb-2">Descripción</h3>
                 <p className="text-[#2a2827]">
                   {profile?.descripcion || "Aún no has añadido una descripción."}
@@ -938,54 +1083,222 @@ const Perfil: React.FC = () => {
               </div>
               
               {profile?.fecha_nacimiento && (
-                <div className="mb-6">
+                <div>
                   <h3 className="text-[#3d7b6f] font-medium mb-2">Fecha de nacimiento</h3>
                   <p className="text-[#2a2827]">{formatDate(profile.fecha_nacimiento)}</p>
                 </div>
               )}
             </div>
           )}
-              
-          {/* Componente de Valoraciones */}
-          {!editMode && (
-            <Valoraciones userId={parseInt(id || user?.id || '0')} />
-          )}
-              </div>
-            </div>
+        </div>
+
+        {/* Sección de Valoraciones y Mascotas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Valoraciones */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            {!editMode && (
+              <>
+                <h2 className="text-xl font-bold text-[#3d7b6f] mb-4">Valoraciones</h2>
+                <Valoraciones 
+                  userId={parseInt(id || user?.id || '0')} 
+                  key={refreshValoraciones ? 'refresh' : 'normal'}
+                />
+                {!isOwnProfile && user && (
+                  <div className="mt-6">
+                    <AddValoracion 
+                      autorId={parseInt(user.id)}
+                      receptorId={parseInt(id || '0')}
+                      onValoracionAdded={handleValoracionAdded}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          {/* Columna derecha - Posts */}
-          <div className="lg:col-span-2 w-full">
-            <div className="bg-white rounded-lg shadow p-6 w-full">
-              <h2 className="text-2xl font-semibold text-[#3d7b6f] mb-6">Mis Publicaciones</h2>
+          {/* Mascotas */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-[#3d7b6f] flex items-center">
+                <FaPaw className="mr-2" />
+                Mascotas
+              </h2>
               
-              {postsError && (
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
-                  <p>{postsError}</p>
-                  <button 
-                    className="mt-2 text-sm underline"
-                    onClick={() => {
-                      setPostsError(null);
-                      if (user) {
-                        fetchPostsByUser(parseInt(user.id));
-                      }
-                    }}
-                  >
-                    Intentar de nuevo
-                  </button>
-                </div>
+              {isOwnProfile && !showMascotaForm && (
+                <button
+                  onClick={() => {
+                    setEditingMascota(null);
+                    setMascotaFormData({
+                      nombre: '',
+                      genero: '',
+                      raza: ''
+                    });
+                    setShowMascotaForm(true);
+                  }}
+                  className="flex items-center px-3 py-1.5 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] text-sm"
+                >
+                  <BsPlusLg className="mr-1" />
+                  Añadir mascota
+                </button>
               )}
-              
-              <PostList 
-                posts={userPosts}
-                userImagesCache={userImagesCache}
-                userId={user?.id || 1}
-                loading={loadingPosts}
-                onCommentSubmit={handleCommentSubmit}
-                onDeletePost={handleDeletePost}
-              />
             </div>
+
+            {loadingMascotas ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Cargando mascotas...</p>
+              </div>
+            ) : errorMascotas ? (
+              <div className="text-center py-4">
+                <p className="text-red-500">{errorMascotas}</p>
+              </div>
+            ) : mascotas.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">
+                  {isOwnProfile ? "Aún no tienes mascotas registradas." : "Este usuario no tiene mascotas registradas."}
+                </p>
+                {isOwnProfile && !showMascotaForm && (
+                  <button
+                    onClick={() => setShowMascotaForm(true)}
+                    className="mt-2 text-[#3d7b6f] underline"
+                  >
+                    Agrega tu primera mascota
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {mascotas.map((mascota) => (
+                  <MascotaCard
+                    key={mascota.id}
+                    mascota={mascota}
+                    isOwnProfile={isOwnProfile}
+                    onEdit={isOwnProfile ? handleEditMascota : undefined}
+                    onDelete={isOwnProfile ? handleDeleteMascota : undefined}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Formulario de mascota */}
+            {showMascotaForm && isOwnProfile && (
+              <div className="bg-[#f8ffe5] p-4 rounded-lg mt-4 border border-[#9fe0b7]">
+                <h3 className="text-[#3d7b6f] font-medium mb-3">
+                  {editingMascota ? `Editar a ${editingMascota.nombre}` : 'Registrar nueva mascota'}
+                </h3>
+                
+                {mascotaError && (
+                  <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+                    <p>{mascotaError}</p>
+                  </div>
+                )}
+                
+                {mascotaSuccess && (
+                  <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded">
+                    <p>{mascotaSuccess}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleMascotaSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#2a2827] mb-1">
+                        Nombre*
+                      </label>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={mascotaFormData.nombre}
+                        onChange={handleMascotaInputChange}
+                        required
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                        placeholder="Nombre de tu mascota"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2a2827] mb-1">
+                        Género*
+                      </label>
+                      <select
+                        name="genero"
+                        value={mascotaFormData.genero}
+                        onChange={handleMascotaInputChange}
+                        required
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                      >
+                        <option value="">Selecciona un género</option>
+                        <option value="Macho">Macho</option>
+                        <option value="Hembra">Hembra</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2a2827] mb-1">
+                        Raza*
+                      </label>
+                      <input
+                        type="text"
+                        name="raza"
+                        value={mascotaFormData.raza}
+                        onChange={handleMascotaInputChange}
+                        required
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                        placeholder="Raza de tu mascota"
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowMascotaForm(false)}
+                        className="px-4 py-2 text-[#3d7b6f] border border-[#3d7b6f] rounded-md hover:bg-[#f0fff0]"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58]"
+                      >
+                        Guardar mascota
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Sección de Posts */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-semibold text-[#3d7b6f] mb-6">Publicaciones</h2>
+          
+          {postsError && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+              <p>{postsError}</p>
+              <button 
+                className="mt-2 text-sm underline"
+                onClick={() => {
+                  setPostsError(null);
+                  if (user) {
+                    fetchPostsByUser(parseInt(user.id));
+                  }
+                }}
+              >
+                Intentar de nuevo
+              </button>
+            </div>
+          )}
+          
+          <PostList 
+            posts={userPosts}
+            userImagesCache={userImagesCache}
+            userId={user?.id || 1}
+            loading={loadingPosts}
+            onCommentSubmit={handleCommentSubmit}
+            onDeletePost={handleDeletePost}
+          />
         </div>
       </div>
     </div>

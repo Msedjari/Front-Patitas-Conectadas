@@ -34,6 +34,7 @@ interface Perfil {
 
 interface ValoracionesProps {
   userId: number;
+  key?: string;
 }
 
 const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
@@ -83,6 +84,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
     const fetchValoraciones = async () => {
       try {
         setLoading(true);
+        setError(null);
         const token = localStorage.getItem(config.session.tokenKey);
         
         // 1. Obtener las valoraciones

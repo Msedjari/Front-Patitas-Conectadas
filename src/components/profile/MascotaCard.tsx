@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BsPencil, BsTrash } from 'react-icons/bs';
+import { FaPaw } from 'react-icons/fa';
 import { Mascota } from '../../services/mascotasService';
 
 interface MascotaCardProps {
@@ -29,14 +30,20 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Imagen de la mascota */}
       <div className="relative h-48 bg-gray-100">
-        <img
-          src={mascota.foto || '/default-pet.svg'}
-          alt={mascota.nombre}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = '/default-pet.svg';
-          }}
-        />
+        {mascota.foto ? (
+          <img
+            src={mascota.foto}
+            alt={mascota.nombre}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/default-pet.svg';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <FaPaw className="text-gray-400 text-4xl" />
+          </div>
+        )}
         
         {/* Botones de acción (solo para perfil propio) */}
         {isOwnProfile && (

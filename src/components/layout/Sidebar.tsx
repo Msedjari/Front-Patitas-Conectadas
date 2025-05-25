@@ -75,8 +75,7 @@ const Sidebar: React.FC = () => {
     { name: 'Guardados', icon: 'bookmark', path: '/guardados' },
     { name: 'Grupos', icon: 'users-group', path: '/grupos' },
     { name: 'Eventos', icon: 'calendar', path: '/eventos' },
-    { name: 'Chat', icon: 'chat', path: '/chat' },
-    { name: 'Fotos', icon: 'photos', path: '/fotos' },
+    { name: 'Chat', icon: 'chat', path: '/chat' }
   ];
 
   // Accesos directos a grupos

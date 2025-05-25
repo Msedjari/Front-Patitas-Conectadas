@@ -82,19 +82,6 @@ const MobileBottomNav: React.FC = () => {
           )}
         </Link>
 
-        {/* Protectoras */}
-        <Link to="/protectoras" className={`mobile-nav-item ${isActive('/protectoras') ? 'active' : ''}`}>
-          {isActive('/protectoras') ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="mobile-nav-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm4-9h-3V8a1 1 0 10-2 0v4a1 1 0 001 1h4a1 1 0 100-2z"/>
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-        </Link>
-        
         {/* Grupos  */}
         <Link to="/grupos" className={`mobile-nav-item ${isActive('/grupos') ? 'active' : ''}`}>
           {isActive('/grupos') ? (
@@ -135,12 +122,12 @@ const MobileBottomNav: React.FC = () => {
         </Link>
         
         {/* Perfil */}
-        <Link to="/perfil" className={`mobile-nav-item ${isActive('/perfil') ? 'active' : ''}`}>
+        <Link to="/mi-perfil" className={`mobile-nav-item ${isActive('/mi-perfil') ? 'active' : ''}`}>
           <div className="relative">
-            {isActive('/perfil') ? (
-              <div className="w-7 h-7 rounded-full border-2 border-[var(--primary-color)] overflow-hidden">
+            {isActive('/mi-perfil') ? (
+              <div className="w-7 h-7 rounded-full border-2 border-[#6cda84] overflow-hidden">
                 <img 
-                  src={getUserImage(userImagesCache, user?.id)} 
+                  src={getUserImage(userImagesCache, Number(user?.id))} 
                   alt={user?.nombre || user?.name || "Usuario"}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -152,7 +139,7 @@ const MobileBottomNav: React.FC = () => {
             ) : (
               <div className="w-7 h-7 rounded-full overflow-hidden">
                 <img 
-                  src={getUserImage(userImagesCache, user?.id)} 
+                  src={getUserImage(userImagesCache, Number(user?.id))} 
                   alt={user?.nombre || user?.name || "Usuario"}
                   className="w-full h-full object-cover"
                   onError={(e) => {

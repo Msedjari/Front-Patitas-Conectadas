@@ -1,4 +1,5 @@
 import React from 'react';
+import BotonSeguir from '../common/BotonSeguir';
 
 export interface AmigoCardProps {
     id: number;
@@ -6,7 +7,7 @@ export interface AmigoCardProps {
     apellido?: string;
     img?: string;
     email?: string;
-  onRemove: (amigo: any) => void;
+    onRemove: (amigo: any) => void;
 }
 
 /**
@@ -38,6 +39,7 @@ const AmigoCard: React.FC<AmigoCardProps> = (amigo) => {
       </div>
       
       <div className="flex space-x-2">
+        <BotonSeguir usuarioId={amigo.id} />
         <button 
           className="text-[#2e82dc] p-2 hover:bg-blue-50 rounded-full"
           title="Enviar mensaje"

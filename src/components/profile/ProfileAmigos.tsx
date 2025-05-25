@@ -5,6 +5,7 @@ import ErrorMessage from '../common/ErrorMessage';
 import EmptyState from '../common/EmptyState';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchFriendsByUserId, User } from '../../services/userService';
+import { getUserImage } from '../home/HomeUtils';
 
 interface ProfileAmigosProps {
   userId: number;
@@ -18,7 +19,24 @@ const ProfileAmigos: React.FC<ProfileAmigosProps> = ({ userId, isOwnProfile }) =
   const [amigos, setAmigos] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    const loadUserImagesCache = () => {
+      const cachedImages = localStorage.getItem('userImagesCache');
+      if (cachedImages) {
+        setUserImagesCache(JSON.parse(cachedImages));
+      }
+    };
+    loadUserImagesCache();
+  }, []);
+
+  const updateUserImagesCache = (userId: number, imagePath: string) => {
+    const newCache = { ...userImagesCache, [userId]: imagePath };
+    setUserImagesCache(newCache);
+    localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+  };
   
   useEffect(() => {
     const loadAmigos = async () => {
@@ -29,42 +47,16 @@ const ProfileAmigos: React.FC<ProfileAmigosProps> = ({ userId, isOwnProfile }) =
         // Obtener amigos del usuario usando el servicio
         const data = await fetchFriendsByUserId(userId);
         setAmigos(data);
+        
+        // Actualizar el caché de imágenes para cada amigo
+        data.forEach(amigo => {
+          if (amigo.img) {
+            updateUserImagesCache(Number(amigo.id), amigo.img);
+          }
+        });
       } catch (err) {
         console.error('Error al cargar amigos:', err);
         setError('No se pudieron cargar los amigos. Intenta de nuevo más tarde.');
-        
-        // Para desarrollo, usar datos de prueba si ocurre un error
-        if (import.meta.env.DEV) {
-          console.log('Cargando datos de prueba para desarrollo');
-          setTimeout(() => {
-            setAmigos([
-              {
-                id: 1,
-                nombre: 'Carlos',
-                apellido: 'Rodríguez',
-                email: 'carlos@example.com',
-                foto: 'https://randomuser.me/api/portraits/men/75.jpg',
-                ciudad: 'Barcelona'
-              },
-              {
-                id: 2,
-                nombre: 'Laura',
-                apellido: 'Fernández',
-                email: 'laura@example.com',
-                foto: 'https://randomuser.me/api/portraits/women/63.jpg',
-                ciudad: 'Sevilla'
-              },
-              {
-                id: 3,
-                nombre: 'Miguel',
-                apellido: 'Sánchez',
-                email: 'miguel@example.com',
-                foto: 'https://randomuser.me/api/portraits/men/22.jpg',
-                ciudad: 'Valencia'
-              }
-            ]);
-          }, 500);
-        }
       } finally {
         setLoading(false);
       }
@@ -115,11 +107,11 @@ const ProfileAmigos: React.FC<ProfileAmigosProps> = ({ userId, isOwnProfile }) =
           >
             <div className="w-12 h-12 rounded-full overflow-hidden mr-3">
               <img 
-                src={amigo.foto || 'https://via.placeholder.com/80?text=Usuario'}
+                src={getUserImage(userImagesCache, Number(amigo.id))}
                 alt={`${amigo.nombre} ${amigo.apellido}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Usuario';
+                  (e.target as HTMLImageElement).src = '/default-avatar.svg';
                 }}
               />
             </div>
