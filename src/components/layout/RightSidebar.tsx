@@ -3,26 +3,28 @@ import { config } from '../../config';
 
 /**
  * Componente de barra lateral derecha con estilo de Facebook
- * Muestra recordatorios de cumpleaños y contactos
+ * Muestra los tres próximos eventos y sugerencias de usuarios no seguidos
  */
 const RightSidebar: React.FC = () => {
   // Estados para datos desde el backend
-  const [petEvents, setPetEvents] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState({
     events: false,
-    contacts: false
+    suggestions: false
   });
+  const [following, setFollowing] = useState<{[key: string]: boolean}>({});
+  const [joinedEvents, setJoinedEvents] = useState<{[key: string]: boolean}>({});
 
-  // Obtener eventos de mascotas
+  // Obtener próximos eventos
   useEffect(() => {
-    const fetchPetEvents = async () => {
+    const fetchUpcomingEvents = async () => {
       try {
         setLoading(prev => ({ ...prev, events: true }));
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${config.apiUrl}/mascotas/eventos`, {
+        const response = await fetch(`${config.apiUrl}/eventos/proximos`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -31,29 +33,106 @@ const RightSidebar: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setPetEvents(data);
+          // Filtrar eventos futuros y ordenar por fecha
+          const now = new Date();
+          const futureEvents = data.filter((event: any) => new Date(event.fecha) > now);
+          const sortedEvents = futureEvents.sort((a: any, b: any) => 
+            new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+          ).slice(0, 3);
+          setUpcomingEvents(sortedEvents);
+
+          // Verificar eventos a los que el usuario ya se ha unido
+          const joinedEventsState: {[key: string]: boolean} = {};
+          for (const event of sortedEvents) {
+            try {
+              const eventResponse = await fetch(`${config.apiUrl}/eventos/${event.id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (eventResponse.ok) {
+                const eventData = await eventResponse.json();
+                // Verificar si el usuario actual es participante
+                const isParticipant = eventData.participantes?.some((p: any) => p.id === parseInt(localStorage.getItem('userId') || '0'));
+                joinedEventsState[event.id] = isParticipant;
+              }
+            } catch (error) {
+              console.error(`Error al verificar participación en evento ${event.id}:`, error);
+            }
+          }
+          setJoinedEvents(joinedEventsState);
         } else {
-          console.error('Error al obtener eventos de mascotas:', response.status);
+          console.error('Error al obtener próximos eventos:', response.status);
         }
       } catch (error) {
-        console.error('Error al cargar eventos de mascotas:', error);
+        console.error('Error al cargar próximos eventos:', error);
       } finally {
         setLoading(prev => ({ ...prev, events: false }));
       }
     };
 
-    fetchPetEvents();
+    fetchUpcomingEvents();
   }, []);
 
-  // Obtener contactos
+  // Función para unirse/salir de un evento
+  const handleJoinEvent = async (eventId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const isCurrentlyJoined = joinedEvents[eventId];
+      const method = isCurrentlyJoined ? 'DELETE' : 'POST';
+
+      const response = await fetch(`${config.apiUrl}/eventos/${eventId}/participante`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Actualizar el estado local
+        setJoinedEvents(prev => ({
+          ...prev,
+          [eventId]: !isCurrentlyJoined
+        }));
+
+        // Actualizar la información del evento
+        const updatedEventResponse = await fetch(`${config.apiUrl}/eventos/${eventId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (updatedEventResponse.ok) {
+          const updatedEvent = await updatedEventResponse.json();
+          // Actualizar el evento en la lista de próximos eventos
+          setUpcomingEvents(prev => 
+            prev.map(event => 
+              event.id === eventId ? { ...event, ...updatedEvent } : event
+            )
+          );
+        }
+      } else {
+        console.error('Error al actualizar participación:', response.status);
+      }
+    } catch (error) {
+      console.error('Error al actualizar participación:', error);
+    }
+  };
+
+  // Obtener sugerencias de usuarios no seguidos
   useEffect(() => {
-    const fetchContacts = async () => {
+    const fetchSuggestions = async () => {
       try {
-        setLoading(prev => ({ ...prev, contacts: true }));
+        setLoading(prev => ({ ...prev, suggestions: true }));
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${config.apiUrl}/contactos`, {
+        const response = await fetch(`${config.apiUrl}/usuarios/sugerencias`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -62,140 +141,172 @@ const RightSidebar: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setContacts(data);
+          setSuggestions(data);
+          // Inicializar el estado de seguimiento para cada usuario
+          const followingState: {[key: string]: boolean} = {};
+          data.forEach((user: any) => {
+            followingState[user.id] = false;
+          });
+          setFollowing(followingState);
         } else {
-          console.error('Error al obtener contactos:', response.status);
+          console.error('Error al obtener sugerencias:', response.status);
         }
       } catch (error) {
-        console.error('Error al cargar contactos:', error);
+        console.error('Error al cargar sugerencias:', error);
       } finally {
-        setLoading(prev => ({ ...prev, contacts: false }));
+        setLoading(prev => ({ ...prev, suggestions: false }));
       }
     };
 
-    fetchContacts();
+    fetchSuggestions();
   }, []);
+
+  // Función para seguir a un usuario
+  const handleFollow = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${config.apiUrl}/usuarios/seguir/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Actualizar el estado local
+        setFollowing(prev => ({
+          ...prev,
+          [userId]: true
+        }));
+        // Remover el usuario de las sugerencias
+        setSuggestions(prev => prev.filter(user => user.id !== userId));
+      } else {
+        console.error('Error al seguir usuario:', response.status);
+      }
+    } catch (error) {
+      console.error('Error al seguir usuario:', error);
+    }
+  };
+
+  // Formatear fecha para mostrar
+  const formatDate = (dateString: string): string => {
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('es-ES', options);
+  };
 
   return (
     <div className="h-full pt-4 pb-4 overflow-y-auto p-3">      
-      {/* Recordatorios de mascotas */}
+      {/* Próximos eventos */}
       <section className="mb-6">
-        <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Recordatorios de mascotas</h3>
+        <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Próximos eventos</h3>
         
         {loading.events ? (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84]"></div>
           </div>
-        ) : petEvents.length > 0 ? (
-          petEvents.map(event => (
-            <div key={event.id} className="flex items-center mb-3 p-2 rounded-lg hover:bg-white">
-              <div className="w-10 h-10 rounded-full bg-[#a7e9b5] text-[#3d7b6f] flex items-center justify-center mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-                </svg>
+        ) : upcomingEvents.length > 0 ? (
+          <div className="space-y-3">
+            {upcomingEvents.map(event => (
+              <div key={event.id} className="bg-white rounded-lg p-3 border border-[#9fe0b7] hover:shadow-md transition-shadow">
+                <h4 className="font-medium text-[#2a2827] mb-1">{event.nombre}</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center text-[#575350]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-[#3d7b6f]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    {event.ubicacion}
+                  </div>
+                  <div className="flex items-center text-[#575350]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-[#3d7b6f]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    {formatDate(event.fecha)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleJoinEvent(event.id!)}
+                  className={`mt-2 w-full text-sm font-medium px-3 py-1 rounded-full ${
+                    joinedEvents[event.id!]
+                      ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      : 'bg-[#3d7b6f] text-white hover:bg-[#2e5d54]'
+                  }`}
+                >
+                  {joinedEvents[event.id!] ? 'Salir del evento' : 'Unirse al evento'}
+                </button>
               </div>
-              <div>
-                <p className="text-sm text-[#2a2827]">
-                  <span className="font-medium">{event.mascota_nombre}</span> - {event.tipo}
-                </p>
-                <p className="text-xs text-[#575350]">{event.fecha}</p>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <p className="text-sm text-[#575350] text-center py-2">No hay recordatorios disponibles.</p>
+          <p className="text-sm text-[#575350] text-center py-2">No hay eventos próximos.</p>
         )}
         
         <a 
-          href="/recordatorios" 
+          href="/eventos" 
           className="text-[#2e82dc] text-sm font-medium hover:underline block mt-2"
         >
-          Ver todos los recordatorios
+          Ver todos los eventos
         </a>
       </section>
       
       {/* Divisor */}
       <div className="border-t border-[#a7e9b5] mb-4"></div>
       
-      {/* Lista de contactos */}
+      {/* Lista de sugerencias */}
       <section>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-[#3d7b6f] font-medium text-sm">Contactos</h3>
-          <div className="flex space-x-2">
-            <button className="text-[#3d7b6f] hover:bg-white rounded-full w-8 h-8 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <button className="text-[#3d7b6f] hover:bg-white rounded-full w-8 h-8 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <button className="text-[#3d7b6f] hover:bg-white rounded-full w-8 h-8 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Personas que podrías conocer</h3>
         
-        <ul className="space-y-1">
-          {loading.contacts ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84]"></div>
-            </div>
-          ) : contacts.length > 0 ? (
-            contacts.map(contact => (
-              <li key={contact.id}>
-                <a 
-                  href={`/mensajes/${contact.id}`}
-                  className="flex items-center px-2 py-2 rounded-lg hover:bg-white"
-                >
-                  <div className="relative mr-3">
-                    <div className="w-8 h-8 rounded-full bg-white overflow-hidden border border-[#e0e0e0]">
-                      {contact.img ? (
-                        <img 
-                          src={contact.img} 
-                          alt={contact.nombre} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/default-avatar.svg';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-white text-xs text-[#3d7b6f]">
-                          {contact.nombre.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    {contact.online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#6cda84] rounded-full border-2 border-[#f8ffe5]"></span>
-                    )}
-                  </div>
-                  <span className="font-medium text-sm text-[#2a2827]">{contact.nombre}</span>
-                </a>
-              </li>
-            ))
-          ) : (
-            <p className="text-sm text-[#575350] text-center py-2">No hay contactos disponibles.</p>
-          )}
-        </ul>
-      </section>
-      
-      {/* Botón de nueva conversación de grupo */}
-      <div className="mt-4">
-        <button className="flex items-center w-full px-2 py-2 rounded-lg hover:bg-white text-[#2e82dc]">
-          <div className="w-8 h-8 rounded-full bg-[#a7e9b5] text-[#3d7b6f] flex items-center justify-center mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-            </svg>
+        {loading.suggestions ? (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6cda84]"></div>
           </div>
-          <span className="font-medium text-sm">Nueva conversación de grupo</span>
-        </button>
-      </div>
+        ) : suggestions.length > 0 ? (
+          suggestions.map(user => (
+            <div key={user.id} className="flex items-center justify-between mb-3 p-2 rounded-lg hover:bg-white">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3">
+                  {user.foto ? (
+                    <img 
+                      src={user.foto} 
+                      alt={user.nombre} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      {user.nombre.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm text-[#2a2827] font-medium">{user.nombre}</p>
+                  <p className="text-xs text-[#575350]">{user.mutuales} amigos en común</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => handleFollow(user.id)}
+                disabled={following[user.id]}
+                className={`text-sm font-medium px-3 py-1 rounded-full ${
+                  following[user.id] 
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    : 'bg-[#3d7b6f] text-white hover:bg-[#2e5d54]'
+                }`}
+              >
+                {following[user.id] ? 'Siguiendo' : 'Seguir'}
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-[#575350] text-center py-2">No hay sugerencias disponibles.</p>
+        )}
+      </section>
     </div>
   );
 };

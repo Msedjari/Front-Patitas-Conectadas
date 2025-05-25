@@ -43,7 +43,7 @@ const Amigos: React.FC = () => {
     setLoadingSeguidos(true);
     try {
       const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
-      const ids = relaciones.map(rel => rel.usuarioQueEsSeguidoId);
+      const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
 
       const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
         console.error(`Error al obtener detalles del usuario ${id}:`, e);
@@ -54,7 +54,7 @@ const Amigos: React.FC = () => {
       // Actualizar el caché de imágenes para cada usuario
       details.forEach(detail => {
         if (detail.img) {
-          updateUserImagesCache(detail.id, detail.img);
+          updateUserImagesCache(Number(detail.id), detail.img);
         }
       });
       
@@ -70,11 +70,11 @@ const Amigos: React.FC = () => {
   const handleSeguirUsuario = async (usuarioId: number) => {
     if (!user?.id) return;
     try {
-      await seguidosService.seguirUsuario(Number(user.id), usuarioId);
+      await seguidosService.seguirUsuario(Number(user.id), Number(usuarioId));
       await actualizarListaSeguidos();
       setSearchResults(prevResults => 
         prevResults.map(result => 
-          result.id === usuarioId 
+          Number(result.id) === Number(usuarioId)
             ? { ...result, siguiendo: true }
             : result
         )
@@ -88,11 +88,11 @@ const Amigos: React.FC = () => {
   const handleDejarDeSeguir = async (usuarioId: number) => {
     if (!user?.id) return;
     try {
-      await seguidosService.dejarDeSeguirUsuario(Number(user.id), usuarioId);
+      await seguidosService.dejarDeSeguirUsuario(Number(user.id), Number(usuarioId));
       await actualizarListaSeguidos();
       setSearchResults(prevResults => 
         prevResults.map(result => 
-          result.id === usuarioId 
+          Number(result.id) === Number(usuarioId)
             ? { ...result, siguiendo: false }
             : result
         )
@@ -133,7 +133,7 @@ const Amigos: React.FC = () => {
         // Actualizar el caché de imágenes para los resultados de búsqueda
         filteredResults.forEach(result => {
           if (result.img) {
-            updateUserImagesCache(result.id, result.img);
+            updateUserImagesCache(Number(result.id), result.img);
           }
         });
         
@@ -146,6 +146,16 @@ const Amigos: React.FC = () => {
         setLoadingSearch(false);
       }
     }, 500);
+  };
+
+  const handleFollow = async (userId: number) => {
+    if (!user?.id) return;
+    try {
+      await seguidosService.seguirUsuario(Number(user.id), Number(userId));
+      await actualizarListaSeguidos();
+    } catch (error) {
+      console.error('Error al seguir usuario:', error);
+    }
   };
 
   if (loadingSeguidos && seguidosDetails.length === 0) {
@@ -186,7 +196,7 @@ const Amigos: React.FC = () => {
                     <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center flex-grow">
                         <img
-                          src={getUserImage(userImagesCache, result.id)}
+                          src={getUserImage(userImagesCache, Number(result.id))}
                           alt={result.nombre || 'Usuario'}
                           className="w-12 h-12 rounded-full object-cover mr-4"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}
@@ -198,9 +208,9 @@ const Amigos: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-3">
                         <BotonSeguir 
-                          usuarioId={result.id}
-                          onSeguir={() => handleSeguirUsuario(result.id)}
-                          onDejarDeSeguir={() => handleDejarDeSeguir(result.id)}
+                          usuarioId={Number(result.id)}
+                          onSeguir={() => handleSeguirUsuario(Number(result.id))}
+                          onDejarDeSeguir={() => handleDejarDeSeguir(Number(result.id))}
                           nombreUsuario={`${result.nombre} ${result.apellido}`}
                         />
                         <Link
@@ -240,7 +250,7 @@ const Amigos: React.FC = () => {
                 <div key={seguido.id} className="bg-white rounded-lg shadow p-4 flex items-center justify-between hover:shadow-md transition-shadow">
                   <div className="flex items-center flex-grow">
                     <img
-                      src={getUserImage(userImagesCache, seguido.id)}
+                      src={getUserImage(userImagesCache, Number(seguido.id))}
                       alt={seguido.nombre || 'Usuario'}
                       className="w-12 h-12 rounded-full object-cover mr-4"
                       onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}
@@ -252,8 +262,8 @@ const Amigos: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     <BotonSeguir 
-                      usuarioId={seguido.id}
-                      onDejarDeSeguir={() => handleDejarDeSeguir(seguido.id)}
+                      usuarioId={Number(seguido.id)}
+                      onDejarDeSeguir={() => handleDejarDeSeguir(Number(seguido.id))}
                       nombreUsuario={`${seguido.nombre} ${seguido.apellido}`}
                       siguiendoInicial={true}
                     />

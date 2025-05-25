@@ -12,13 +12,15 @@ interface ChatConversacionProps {
   otroUsuarioNombre: string;
   onMensajeEnviado?: (mensaje: Mensaje) => void;
   onConversacionBorrada?: () => void;
+  onBack?: () => void;
 }
 
 const ChatConversacion: React.FC<ChatConversacionProps> = ({ 
   otroUsuarioId, 
   otroUsuarioNombre,
   onMensajeEnviado,
-  onConversacionBorrada 
+  onConversacionBorrada,
+  onBack
 }) => {
   const { user } = useAuth();
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
@@ -158,7 +160,7 @@ const ChatConversacion: React.FC<ChatConversacionProps> = ({
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div className="flex items-center space-x-3">
           <button 
-            onClick={() => {}}
+            onClick={onBack}
             className="md:hidden p-2 hover:bg-gray-100 rounded-full"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#3d7b6f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -237,26 +239,63 @@ const ChatConversacion: React.FC<ChatConversacionProps> = ({
       {/* Área de entrada de mensaje */}
       <div className="p-4 border-t border-gray-200 bg-white">
         <form onSubmit={enviarMensaje} className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={nuevoMensaje}
-            onChange={(e) => setNuevoMensaje(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            className="flex-1 p-2 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#6cda84] focus:border-transparent"
-          />
-          <button
-            type="submit"
-            disabled={!nuevoMensaje.trim()}
-            className={`p-2 rounded-full ${
-              nuevoMensaje.trim()
-                ? 'bg-[#6cda84] text-white hover:bg-[#38cd58]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </button>
+          <div className="flex-1 relative">
+            <div className="flex items-center bg-[#f8ffe5] rounded-full overflow-hidden">
+              <input
+                type="text"
+                value={nuevoMensaje}
+                onChange={(e) => setNuevoMensaje(e.target.value)}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 px-4 py-2 bg-transparent border-none focus:outline-none focus:ring-0"
+                disabled={enviando}
+                maxLength={255}
+              />
+              
+              <div className="flex items-center pr-2 space-x-1">
+                {/* Botón de emojis */}
+                <button
+                  type="button"
+                  className="text-[#3d7b6f] p-1 hover:text-[#6cda84]"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  disabled={enviando}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                {/* Botón de enviar */}
+                <button
+                  type="submit"
+                  disabled={!nuevoMensaje.trim() || enviando}
+                  className={`p-2 rounded-full ${
+                    nuevoMensaje.trim() && !enviando
+                      ? 'text-[#3d7b6f] hover:text-[#6cda84]'
+                      : 'text-gray-400 cursor-not-allowed'
+                  } transition-colors`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div ref={emojiPickerRef}>
+              <EmojiPickerComponent
+                onEmojiSelect={handleEmojiSelect}
+                showEmojiPicker={showEmojiPicker}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            </div>
+            
+            {/* Indicador de carga */}
+            {enviando && (
+              <div className="mt-1 text-xs text-[#3d7b6f]">
+                Enviando mensaje...
+              </div>
+            )}
+          </div>
         </form>
       </div>
     </div>

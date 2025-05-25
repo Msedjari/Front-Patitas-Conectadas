@@ -108,7 +108,7 @@ const Guardados: React.FC = () => {
             <p className="mt-2 text-[#3d7b6f]">¡Comienza a guardar posts que te interesen!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {savedPosts.map(post => (
               <PostItem 
                 key={post.id} 

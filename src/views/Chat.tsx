@@ -195,8 +195,8 @@ const Chat: React.FC = () => {
       <div className={`flex-1 bg-white ${!showConversacion ? 'hidden md:block' : 'block'}`}>
         {conversacionActiva ? (
           <ChatConversacion
-            conversacionId={conversacionActiva.id}
             otroUsuarioId={conversacionActiva.id}
+            otroUsuarioNombre={`${conversacionActiva.nombre} ${conversacionActiva.apellido}`}
             onBack={() => setShowConversacion(false)}
           />
         ) : (
