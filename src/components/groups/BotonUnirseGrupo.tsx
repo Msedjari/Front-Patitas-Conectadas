@@ -23,7 +23,7 @@ const BotonUnirseGrupo: React.FC<BotonUnirseGrupoProps> = ({ grupoId, onStatusCh
 
       try {
         setLoading(true);
-        const grupos = await usuarioGrupoService.getGruposByUsuario(user.id);
+        const grupos = await usuarioGrupoService.getGruposByUsuario(Number(user.id));
         const miGrupo = grupos.find(g => g.grupoId === grupoId);
         setIsMiembro(!!miGrupo);
         setRelacion(miGrupo || null);
@@ -49,7 +49,7 @@ const BotonUnirseGrupo: React.FC<BotonUnirseGrupoProps> = ({ grupoId, onStatusCh
         setRelacion(null);
         if (onStatusChange) onStatusChange(false);
       } else {
-        const nuevaRelacion = await usuarioGrupoService.unirseAGrupo(user.id, grupoId);
+        const nuevaRelacion = await usuarioGrupoService.unirseAGrupo(Number(user.id), grupoId);
         setIsMiembro(true);
         setRelacion(nuevaRelacion);
         if (onStatusChange) onStatusChange(true, nuevaRelacion);

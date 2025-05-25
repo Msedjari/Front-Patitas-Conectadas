@@ -21,7 +21,6 @@ import { fetchCurrentUserProfile, updateUserProfile, createUserProfile, Profile 
 import { fetchPostsByUser, deletePost } from '../../services/postService';
 import { config } from '../../config';
 import { Link, useParams } from 'react-router-dom';
-import FileUploader from '../common/FileUploader';
 import { UserImagesCache, Post, CommentData } from '../home/types';
 import PostList from '../home/PostList';
 import Valoraciones from './Valoraciones';
@@ -948,7 +947,21 @@ const Perfil: React.FC = () => {
               
           {/* Componente de Valoraciones */}
           {!editMode && (
-            <Valoraciones userId={parseInt(id || user?.id || '0')} />
+            <>
+              <Valoraciones 
+                userId={parseInt(id || user?.id || '0')} 
+                key={refreshValoraciones ? 'refresh' : 'normal'}
+              />
+              {!isOwnProfile && user?.id && (
+                <div className="mt-6">
+                  <AddValoracion 
+                    autorId={parseInt(user.id)}
+                    receptorId={parseInt(id || '0')}
+                    onValoracionAdded={handleValoracionAdded}
+                  />
+                </div>
+              )}
+            </>
           )}
               </div>
             </div>
