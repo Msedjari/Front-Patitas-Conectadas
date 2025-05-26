@@ -386,7 +386,7 @@ const Navbar: React.FC = () => {
                   {/* Menu options */}
                   <div className="py-2">
                     {/* Settings and privacy */}
-                    <Link to="/perfiles" 
+                    <Link to="/configuracion" 
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center px-4 py-3 hover:bg-[#f8ffe5]"
                     >

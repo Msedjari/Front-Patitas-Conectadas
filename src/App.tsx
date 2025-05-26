@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import RecuperarContrasena from './views/RecuperarContrasena';
+import Configuracion from './views/Configuracion';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import Home from './views/home/Home';
@@ -135,6 +136,7 @@ const AppRoutes = () => {
         <Route path="amigos" element={<Amigos />} />
         <Route path="guardados" element={<Guardados />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="configuracion" element={<Configuracion />} />
       </Route>
       
       {/* Redirección para rutas no encontradas */}
