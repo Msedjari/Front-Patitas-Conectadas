@@ -11,7 +11,7 @@
  * - Configuración de paginación
  * - Límites para subida de archivos
  * - Claves de almacenamiento para sesión
- */
+ *//*  */
 
 // Determinar si la aplicación está en modo desarrollo o producción
 // Usa la variable de entorno DEV proporcionada por Vite

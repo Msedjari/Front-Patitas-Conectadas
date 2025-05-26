@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import MascotaCard from './MascotaCard';
 import ActionButton from '../common/ActionButton';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -8,7 +9,9 @@ import EmptyState from '../common/EmptyState';
 import { BsPlusLg } from 'react-icons/bs';
 import { 
   fetchMascotasByUserId, 
-  deleteMascota, 
+  deleteMascota,
+  createMascota,
+  updateMascota,
   Mascota 
 } from '../../services/mascotasService';
 
@@ -21,12 +24,27 @@ interface ProfileMascotasProps {
  * Componente que muestra la sección de mascotas en el perfil del usuario
  */
 const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile }) => {
+  const { user } = useAuth();
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const navigate = useNavigate();
-  
+  const [formData, setFormData] = useState<{
+    nombre: string;
+    genero: string;
+    especie: string;
+    foto?: File;
+    fechaNacimiento: string;
+  }>({
+    nombre: '',
+    genero: '',
+    especie: '',
+    fechaNacimiento: ''
+  });
+  const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
+  const [showForm, setShowForm] = useState<boolean>(false);
+
   useEffect(() => {
     const loadMascotas = async () => {
       try {
@@ -68,6 +86,47 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
     } catch (err) {
       console.error('Error al eliminar mascota:', err);
       setDeleteError('No se pudo eliminar la mascota. Intenta de nuevo más tarde.');
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    try {
+      const mascotaData = new FormData();
+      mascotaData.append('nombre', formData.nombre);
+      mascotaData.append('genero', formData.genero);
+      mascotaData.append('especie', formData.especie);
+      mascotaData.append('usuarioId', user.id.toString());
+      if (formData.fechaNacimiento) {
+        mascotaData.append('fechaNacimiento', formData.fechaNacimiento);
+      }
+      if (formData.foto) {
+        mascotaData.append('foto', formData.foto);
+      }
+
+      if (editingMascota) {
+        await updateMascota(editingMascota.id!, mascotaData);
+      } else {
+        await createMascota(mascotaData);
+      }
+
+      setFormData({
+        nombre: '',
+        genero: '',
+        especie: '',
+        fechaNacimiento: ''
+      });
+      setEditingMascota(null);
+      setShowForm(false);
+      
+      // Recargar las mascotas
+      const data = await fetchMascotasByUserId(userId);
+      setMascotas(data);
+    } catch (error) {
+      console.error('Error al guardar la mascota:', error);
+      setError('Error al guardar la mascota');
     }
   };
   
@@ -121,7 +180,7 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
           <ActionButton
             variant="primary"
             size="sm"
-            onClick={handleAddMascota}
+            onClick={() => setShowForm(true)}
             icon={<BsPlusLg />}
           >
             Añadir mascota
@@ -137,7 +196,109 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
         />
       )}
       
-      {renderContent()}
+      {showForm ? (
+        <form onSubmit={handleSubmit} className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Género
+              </label>
+              <select
+                value={formData.genero}
+                onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="">Seleccionar género</option>
+                <option value="Macho">Macho</option>
+                <option value="Hembra">Hembra</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Especie
+              </label>
+              <input
+                type="text"
+                value={formData.especie}
+                onChange={(e) => setFormData({ ...formData, especie: e.target.value })}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Nacimiento
+              </label>
+              <input
+                type="date"
+                value={formData.fechaNacimiento}
+                onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Foto
+              </label>
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFormData({ ...formData, foto: file });
+                  }
+                }}
+                className="w-full p-2 border rounded"
+                accept="image/*"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-4 flex justify-end space-x-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingMascota(null);
+                setFormData({
+                  nombre: '',
+                  genero: '',
+                  especie: '',
+                  fechaNacimiento: ''
+                });
+              }}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {editingMascota ? 'Actualizar' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        renderContent()
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BsPencil, BsTrash } from 'react-icons/bs';
 import { FaPaw } from 'react-icons/fa';
 import { Mascota } from '../../services/mascotasService';
+import { config } from '../../config';
 
 interface MascotaCardProps {
   mascota: Mascota;
@@ -20,10 +21,32 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  // Obtener la edad en formato legible
-  const getEdadTexto = (edad?: number) => {
-    if (!edad) return 'Edad desconocida';
-    return edad === 1 ? '1 año' : `${edad} años`;
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'No disponible';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(date);
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Error en formato de fecha';
+    }
+  };
+
+  // Construir la URL completa de la imagen
+  const getImageUrl = (foto?: string): string | null => {
+    if (!foto) return null;
+    // Asegurarnos de que la URL comienza con /uploads
+    const cleanPath = foto.startsWith('/uploads') ? foto : `/uploads${foto.startsWith('/') ? foto : `/${foto}`}`;
+    return `${config.apiUrl}${cleanPath}`;
   };
   
   return (
@@ -31,14 +54,30 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
       {/* Imagen de la mascota */}
       <div className="relative h-48 bg-gray-100">
         {mascota.foto ? (
-          <img
-            src={mascota.foto}
-            alt={mascota.nombre}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/default-pet.svg';
-            }}
-          />
+          <a 
+            href={getImageUrl(mascota.foto) || '#'} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block w-full h-full"
+          >
+            <img
+              src={getImageUrl(mascota.foto) || ''}
+              alt={mascota.nombre}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+                const parent = (e.target as HTMLImageElement).parentElement;
+                if (parent) {
+                  const iconContainer = document.createElement('div');
+                  iconContainer.className = 'w-full h-full flex items-center justify-center bg-gray-200';
+                  const icon = document.createElement('div');
+                  icon.innerHTML = '<svg class="text-gray-400 text-4xl" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>';
+                  iconContainer.appendChild(icon);
+                  parent.appendChild(iconContainer);
+                }
+              }}
+            />
+          </a>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
             <FaPaw className="text-gray-400 text-4xl" />
@@ -84,21 +123,13 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
             <span className="font-medium">Especie:</span> {mascota.especie}
           </p>
           
-          {mascota.raza && (
-            <p className="text-gray-700">
-              <span className="font-medium">Raza:</span> {mascota.raza}
-            </p>
-          )}
-          
           <p className="text-gray-700">
-            <span className="font-medium">Edad:</span> {getEdadTexto(mascota.edad)}
+            <span className="font-medium">Género:</span> {mascota.genero}
           </p>
           
-          {mascota.genero && (
-            <p className="text-gray-700">
-              <span className="font-medium">Género:</span> {mascota.genero}
-            </p>
-          )}
+          <p className="text-gray-700">
+            <span className="font-medium">Fecha de Nacimiento:</span> {formatDate(mascota.fechaNacimiento)}
+          </p>
         </div>
         
         {mascota.descripcion && (

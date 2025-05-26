@@ -15,8 +15,10 @@ export interface Mascota {
   usuarioId: number;
   nombre: string;
   genero: string;
-  raza: string;
+  especie: string;
   foto?: string;
+  fechaNacimiento?: string;
+  descripcion?: string;
 }
 
 /**
@@ -93,52 +95,20 @@ export const fetchMascotaById = async (usuarioId: number, mascotaId: number): Pr
 /**
  * Crea una nueva mascota para un usuario
  * 
- * @param usuarioId - ID del usuario propietario de la mascota
  * @param mascotaData - Datos de la mascota a crear
  * @returns Promesa que resuelve al objeto Mascota creado
  * @throws Error si la creación falla
  */
-export const createMascota = async (usuarioId: number, mascotaData: Omit<Mascota, 'id' | 'usuarioId'>): Promise<Mascota> => {
+export const createMascota = async (mascotaData: FormData): Promise<Mascota> => {
   try {
-    const token = localStorage.getItem(config.session.tokenKey);
-    
-    if (!token) {
-      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
-    }
-    
-    // Validar campos obligatorios
-    if (!mascotaData.nombre || !mascotaData.genero || !mascotaData.raza) {
-      throw new Error('El nombre, género y raza son campos obligatorios');
-    }
-    
-    // Validar longitud de campos
-    if (mascotaData.genero.length > 10) {
-      throw new Error('El género debe tener un máximo de 10 caracteres');
-    }
-    
-    if (mascotaData.nombre.length > 50 || mascotaData.raza.length > 50) {
-      throw new Error('El nombre y la raza deben tener un máximo de 50 caracteres');
-    }
-    
-    const response = await fetch(`${config.apiUrl}/usuarios/${usuarioId}/mascotas`, {
-      method: 'POST',
+    const response = await api.post('/mascotas', mascotaData, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'multipart/form-data',
       },
-      body: JSON.stringify(mascotaData)
     });
-    
-    if (!response.ok) {
-      if (response.status === 400) {
-        throw new Error('El usuario no existe');
-      }
-      throw new Error('Error al crear la mascota');
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error('Error al crear mascota:', error);
+    console.error('Error al crear la mascota:', error);
     throw error;
   }
 };
@@ -146,57 +116,21 @@ export const createMascota = async (usuarioId: number, mascotaData: Omit<Mascota
 /**
  * Actualiza una mascota existente
  * 
- * @param usuarioId - ID del usuario propietario de la mascota
- * @param mascotaId - ID de la mascota a actualizar
+ * @param id - ID de la mascota a actualizar
  * @param mascotaData - Datos actualizados de la mascota
  * @returns Promesa que resuelve al objeto Mascota actualizado
  * @throws Error si la actualización falla
  */
-export const updateMascota = async (
-  usuarioId: number,
-  mascotaId: number,
-  mascotaData: Omit<Mascota, 'id' | 'usuarioId'>
-): Promise<Mascota> => {
+export const updateMascota = async (id: number, mascotaData: FormData): Promise<Mascota> => {
   try {
-    const token = localStorage.getItem(config.session.tokenKey);
-    
-    if (!token) {
-      throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
-    }
-    
-    // Validar campos obligatorios
-    if (!mascotaData.nombre || !mascotaData.genero || !mascotaData.raza) {
-      throw new Error('El nombre, género y raza son campos obligatorios');
-    }
-    
-    // Validar longitud de campos
-    if (mascotaData.genero.length > 10) {
-      throw new Error('El género debe tener un máximo de 10 caracteres');
-    }
-    
-    if (mascotaData.nombre.length > 50 || mascotaData.raza.length > 50) {
-      throw new Error('El nombre y la raza deben tener un máximo de 50 caracteres');
-    }
-    
-    const response = await fetch(`${config.apiUrl}/usuarios/${usuarioId}/mascotas/${mascotaId}`, {
-      method: 'PUT',
+    const response = await api.put(`/mascotas/${id}`, mascotaData, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'multipart/form-data',
       },
-      body: JSON.stringify(mascotaData)
     });
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('La mascota no existe o no pertenece al usuario');
-      }
-      throw new Error('Error al actualizar la mascota');
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error('Error al actualizar mascota:', error);
+    console.error('Error al actualizar la mascota:', error);
     throw error;
   }
 };

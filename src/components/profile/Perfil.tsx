@@ -78,11 +78,14 @@ const Perfil: React.FC = () => {
   const [mascotaFormData, setMascotaFormData] = useState<Partial<Mascota>>({
     nombre: '',
     genero: '',
-    raza: ''
+    especie: '',
+    fechaNacimiento: ''
   });
   const [mascotaError, setMascotaError] = useState<string | null>(null);
   const [mascotaSuccess, setMascotaSuccess] = useState<string | null>(null);
   const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
+  const [mascotaImagePreview, setMascotaImagePreview] = useState<string | null>(null);
+  const [selectedMascotaImage, setSelectedMascotaImage] = useState<File | null>(null);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -643,15 +646,33 @@ const Perfil: React.FC = () => {
   const handleMascotaImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validar el tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        setMascotaError('Por favor, selecciona un archivo de imagen válido');
+        return;
+      }
+
+      // Validar el tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMascotaError('La imagen no puede ser mayor a 5MB');
+        return;
+      }
+
+      setSelectedMascotaImage(file);
+      setMascotaError(null);
+
+      // Crear URL para la vista previa
       const reader = new FileReader();
       reader.onloadend = () => {
-        setMascotaFormData(prev => ({
-          ...prev,
-          foto: reader.result as string
-        }));
+        setMascotaImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleRemoveMascotaImage = () => {
+    setSelectedMascotaImage(null);
+    setMascotaImagePreview(null);
   };
 
   const handleEditMascota = (mascota: Mascota) => {
@@ -659,7 +680,8 @@ const Perfil: React.FC = () => {
     setMascotaFormData({
       nombre: mascota.nombre,
       genero: mascota.genero,
-      raza: mascota.raza,
+      especie: mascota.especie,
+      fechaNacimiento: mascota.fechaNacimiento || '',
       foto: mascota.foto || ''
     });
     setShowMascotaForm(true);
@@ -694,30 +716,55 @@ const Perfil: React.FC = () => {
     }
 
     try {
+      // Crear FormData para enviar la mascota con la imagen
+      const formData = new FormData();
+      formData.append('nombre', mascotaFormData.nombre || '');
+      formData.append('genero', mascotaFormData.genero || '');
+      formData.append('especie', mascotaFormData.especie || '');
+      
+      // Asegurarnos de que la fecha esté en formato correcto
+      if (mascotaFormData.fechaNacimiento) {
+        formData.append('fechaNacimiento', mascotaFormData.fechaNacimiento);
+      }
+      
+      if (selectedMascotaImage) {
+        formData.append('imagen', selectedMascotaImage);
+      }
+
       if (editingMascota?.id) {
         // Actualizar mascota existente
-        const mascotaActualizada = await updateMascota(
-          parseInt(user.id),
-          editingMascota.id,
-          {
-            nombre: mascotaFormData.nombre || '',
-            genero: mascotaFormData.genero || '',
-            raza: mascotaFormData.raza || ''
-          }
-        );
-        
+        const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/mascotas/${editingMascota.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': getAuthHeaders(false)['Authorization']
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar la mascota');
+        }
+
+        const mascotaActualizada = await response.json();
         setMascotas(prev => prev.map(m => 
           m.id === editingMascota.id ? mascotaActualizada : m
         ));
         setMascotaSuccess('Mascota actualizada exitosamente');
       } else {
         // Crear nueva mascota
-        const nuevaMascota = await createMascota(parseInt(user.id), {
-          nombre: mascotaFormData.nombre || '',
-          genero: mascotaFormData.genero || '',
-          raza: mascotaFormData.raza || ''
+        const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/mascotas`, {
+          method: 'POST',
+          headers: {
+            'Authorization': getAuthHeaders(false)['Authorization']
+          },
+          body: formData
         });
 
+        if (!response.ok) {
+          throw new Error('Error al crear la mascota');
+        }
+
+        const nuevaMascota = await response.json();
         setMascotas(prev => [...prev, nuevaMascota]);
         setMascotaSuccess('Mascota registrada exitosamente');
       }
@@ -727,8 +774,11 @@ const Perfil: React.FC = () => {
       setMascotaFormData({
         nombre: '',
         genero: '',
-        raza: ''
+        especie: '',
+        fechaNacimiento: ''
       });
+      setSelectedMascotaImage(null);
+      setMascotaImagePreview(null);
     } catch (error) {
       console.error('Error al guardar mascota:', error);
       setMascotaError('Error al guardar la mascota');
@@ -854,7 +904,7 @@ const Perfil: React.FC = () => {
                 <div className="mt-4">
                   <BotonSeguir 
                     usuarioId={Number(id)} 
-                    nombreUsuario={`${profile?.nombre || ''} ${profile?.apellido || ''}`}
+                    nombreUsuario={`${profileUser?.nombre || ''} ${profileUser?.apellido || ''}`}
                   />
                 </div>
               )}
@@ -1131,7 +1181,8 @@ const Perfil: React.FC = () => {
                     setMascotaFormData({
                       nombre: '',
                       genero: '',
-                      raza: ''
+                      especie: '',
+                      fechaNacimiento: ''
                     });
                     setShowMascotaForm(true);
                   }}
@@ -1235,17 +1286,82 @@ const Perfil: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-[#2a2827] mb-1">
-                        Raza*
+                        Especie*
                       </label>
                       <input
                         type="text"
-                        name="raza"
-                        value={mascotaFormData.raza}
+                        name="especie"
+                        value={mascotaFormData.especie}
                         onChange={handleMascotaInputChange}
                         required
                         className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-                        placeholder="Raza de tu mascota"
+                        placeholder="Especie de tu mascota"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2a2827] mb-1">
+                        Fecha de Nacimiento
+                      </label>
+                      <input
+                        type="date"
+                        name="fechaNacimiento"
+                        value={mascotaFormData.fechaNacimiento || ''}
+                        onChange={handleMascotaInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
+                      />
+                    </div>
+
+                    {/* Sección de subida de foto */}
+                    <div>
+                      <label className="block text-sm font-medium text-[#2a2827] mb-1">
+                        Foto de la mascota
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
+                          <img 
+                            src={mascotaImagePreview || ''} 
+                            alt="Foto de mascota" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              const parent = (e.target as HTMLImageElement).parentElement;
+                              if (parent) {
+                                const iconContainer = document.createElement('div');
+                                iconContainer.className = 'w-full h-full flex items-center justify-center bg-gray-200';
+                                const icon = document.createElement('div');
+                                icon.innerHTML = '<svg class="text-gray-400 text-4xl" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>';
+                                iconContainer.appendChild(icon);
+                                parent.appendChild(iconContainer);
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleMascotaImageChange}
+                            className="hidden"
+                            id="mascota-image-input"
+                          />
+                          <label
+                            htmlFor="mascota-image-input"
+                            className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] cursor-pointer inline-block"
+                          >
+                            Subir foto
+                          </label>
+                          {mascotaImagePreview && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveMascotaImage}
+                              className="ml-2 px-4 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex justify-end space-x-2">
