@@ -57,24 +57,24 @@ const MascotaForm: React.FC = () => {
     
     loadMascota();
   }, [id, isEditing, user]);
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
-    setMascota(prev => ({
-      ...prev,
+      setMascota(prev => ({
+        ...prev,
       [name as string]: value
-    }));
+      }));
   };
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
+    
     try {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
-
+      
       const formData = new FormData();
       formData.append('nombre', mascota.nombre);
       formData.append('genero', mascota.genero);
@@ -82,7 +82,7 @@ const MascotaForm: React.FC = () => {
       if (mascota.foto) formData.append('foto', mascota.foto);
       if (mascota.fechaNacimiento) formData.append('fechaNacimiento', mascota.fechaNacimiento);
       formData.append('usuarioId', user.id.toString());
-
+      
       if (isEditing && id) {
         await updateMascota(Number(id), formData);
         setSuccess('Mascota actualizada exitosamente');
@@ -101,35 +101,35 @@ const MascotaForm: React.FC = () => {
       setSubmitting(false);
     }
   };
-
+  
   if (loading) {
     return <LoadingSpinner />;
   }
-
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold mb-6">
           {isEditing ? 'Editar Mascota' : 'Nueva Mascota'}
-        </h1>
-
+          </h1>
+          
         {error && <ErrorMessage message={error} />}
-        {success && (
+          {success && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
-        
+              {success}
+            </div>
+          )}
+          
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <TextField
             fullWidth
             label="Nombre"
-            name="nombre"
-            value={mascota.nombre}
-            onChange={handleInputChange}
+                  name="nombre"
+                  value={mascota.nombre}
+                  onChange={handleInputChange}
             margin="normal"
-            required
-          />
+                  required
+                />
           
           <FormControl fullWidth margin="normal" required>
             <InputLabel>Género</InputLabel>
@@ -147,9 +147,9 @@ const MascotaForm: React.FC = () => {
           <FormControl fullWidth margin="normal" required>
             <InputLabel>Especie</InputLabel>
             <Select
-              name="especie"
-              value={mascota.especie}
-              onChange={handleInputChange}
+                  name="especie"
+                  value={mascota.especie}
+                  onChange={handleInputChange}
               label="Especie"
             >
               <MenuItem value="Perro">Perro</MenuItem>
@@ -163,9 +163,9 @@ const MascotaForm: React.FC = () => {
             label="URL de la foto"
             name="foto"
             value={mascota.foto}
-            onChange={handleInputChange}
+                  onChange={handleInputChange}
             margin="normal"
-          />
+                />
 
           <TextField
             fullWidth
@@ -173,7 +173,7 @@ const MascotaForm: React.FC = () => {
             name="fechaNacimiento"
             type="date"
             value={mascota.fechaNacimiento}
-            onChange={handleInputChange}
+                  onChange={handleInputChange}
             margin="normal"
             InputLabelProps={{
               shrink: true,
@@ -186,8 +186,8 @@ const MascotaForm: React.FC = () => {
             color="primary"
             fullWidth
             sx={{ mt: 3 }}
-            disabled={submitting}
-          >
+                  disabled={submitting}
+                >
             {isEditing ? 'Actualizar Mascota' : 'Crear Mascota'}
           </Button>
         </Box>

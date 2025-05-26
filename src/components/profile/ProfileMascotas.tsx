@@ -9,7 +9,7 @@ import EmptyState from '../common/EmptyState';
 import { BsPlusLg } from 'react-icons/bs';
 import { 
   fetchMascotasByUserId, 
-  deleteMascota,
+  deleteMascota, 
   createMascota,
   updateMascota,
   Mascota 
@@ -44,7 +44,7 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
   });
   const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
-
+  
   useEffect(() => {
     const loadMascotas = async () => {
       try {

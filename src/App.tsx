@@ -18,6 +18,9 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import RecuperarContrasena from './views/RecuperarContrasena';
 import Configuracion from './views/Configuracion';
+import Ayuda from './views/Ayuda';
+import GuiaUsuario from './views/GuiaUsuario';
+import PoliticaPrivacidad from './views/PoliticaPrivacidad';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import Home from './views/home/Home';
@@ -137,6 +140,9 @@ const AppRoutes = () => {
         <Route path="guardados" element={<Guardados />} />
         <Route path="chat" element={<Chat />} />
         <Route path="configuracion" element={<Configuracion />} />
+        <Route path="ayuda" element={<Ayuda />} />
+        <Route path="guia-usuario" element={<GuiaUsuario />} />
+        <Route path="politica-privacidad" element={<PoliticaPrivacidad />} />
       </Route>
       
       {/* Redirección para rutas no encontradas */}

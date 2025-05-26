@@ -60,11 +60,11 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
             rel="noopener noreferrer"
             className="block w-full h-full"
           >
-            <img
+          <img
               src={getImageUrl(mascota.foto) || ''}
-              alt={mascota.nombre}
-              className="w-full h-full object-cover"
-              onError={(e) => {
+            alt={mascota.nombre}
+            className="w-full h-full object-cover"
+            onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
                 const parent = (e.target as HTMLImageElement).parentElement;
                 if (parent) {
@@ -75,8 +75,8 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
                   iconContainer.appendChild(icon);
                   parent.appendChild(iconContainer);
                 }
-              }}
-            />
+            }}
+          />
           </a>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -127,9 +127,9 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
             <span className="font-medium">Género:</span> {mascota.genero}
           </p>
           
-          <p className="text-gray-700">
+            <p className="text-gray-700">
             <span className="font-medium">Fecha de Nacimiento:</span> {formatDate(mascota.fechaNacimiento)}
-          </p>
+            </p>
         </div>
         
         {mascota.descripcion && (
