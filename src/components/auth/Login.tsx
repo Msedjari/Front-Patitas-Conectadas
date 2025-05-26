@@ -157,7 +157,9 @@ const Login = () => {
       
       <div className="mt-6 text-center pt-4 border-t border-[#2a2827]/10">
         <p className="text-sm text-[#2a2827]/80">
-          <strong className="font-semibold">¿Eres una organización?</strong> Crea una página para tu refugio de animales.
+          <a href="/recuperar-contrasena" className="text-[#2e82dc] hover:text-[#1f68b5]">
+            ¿Olvidaste tu contraseña?
+          </a>
         </p>
       </div>
     </AuthLayout>

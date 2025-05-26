@@ -16,6 +16,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import RecuperarContrasena from './views/RecuperarContrasena';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import Home from './views/home/Home';
@@ -112,6 +113,7 @@ const AppRoutes = () => {
       {/* Rutas públicas - accesibles sin autenticación */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
       
       {/* Rutas protegidas que requieren autenticación */}
       <Route
