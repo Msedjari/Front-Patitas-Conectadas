@@ -95,12 +95,9 @@ const PostList: React.FC<PostListProps> = ({
       </div>
       
       {validPosts.length > 0 && onLoadMore && (
-        <button 
-          className="mt-4 w-full py-2 bg-white text-[#3d7b6f] rounded-lg hover:bg-[#f8ffe5] border border-gray-200 transition-colors"
-          onClick={onLoadMore}
-        >
-          Ver más publicaciones
-        </button>
+        <div className="mt-4 text-center text-gray-500">
+          No hay más publicaciones
+        </div>
       )}
     </div>
   );
