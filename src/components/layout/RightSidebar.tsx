@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { seguidosService } from '../../services/seguidosService';
 
 interface User {
   id: number;
@@ -39,7 +40,7 @@ const RightSidebar: React.FC = () => {
     for (let i = newArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
+        }
     return newArray;
   };
 
@@ -95,13 +96,13 @@ const RightSidebar: React.FC = () => {
       });
 
       setError(null);
-    } catch (error) {
+      } catch (error) {
       console.error('Error al cargar usuarios no seguidos:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
-    } finally {
+      } finally {
       setLoading(false);
-    }
-  };
+      }
+    };
 
   useEffect(() => {
     if (user) {
@@ -113,16 +114,14 @@ const RightSidebar: React.FC = () => {
     try {
       if (!user?.id) return;
 
-      const response = await fetch(`http://localhost:4000/usuarios/${user.id}/seguidos/${userId}`, {
-        method: 'POST'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error al seguir usuario: ${response.status}`);
-      }
+      // Usar el servicio de seguidos
+      await seguidosService.seguirUsuario(Number(user.id), userId);
 
       // Actualizar la lista de sugerencias eliminando al usuario seguido
       setSuggestions(prev => prev.filter(u => u.id !== userId));
+      
+      // Disparar un evento personalizado para notificar a otros componentes
+      window.dispatchEvent(new CustomEvent('usuarioSeguido', { detail: { userId } }));
       
       // Si quedan menos de 5 usuarios, intentamos cargar más
       if (suggestions.length <= 5) {
@@ -159,13 +158,13 @@ const RightSidebar: React.FC = () => {
       {/* Usuarios no seguidos */}
       <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
         <h3 className="text-[#3d7b6f] font-medium text-sm mb-3">Usuarios que podrías seguir</h3>
-        <div className="space-y-3">
+          <div className="space-y-3">
           {suggestions.length > 0 ? (
-            suggestions.map(user => (
+          suggestions.map(user => (
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   {perfiles[user.id]?.img ? (
-                    <img
+                    <img 
                       src={`http://localhost:4000/uploads/${perfiles[user.id].img}`}
                       alt={`${user.nombre} ${user.apellido}`}
                       className="w-10 h-10 rounded-full object-cover"
@@ -177,21 +176,21 @@ const RightSidebar: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  <div>
+                <div>
                     <p className="text-sm font-medium text-gray-900">{`${user.nombre} ${user.apellido}`}</p>
-                  </div>
                 </div>
-                <button
-                  onClick={() => handleFollow(user.id)}
-                  className="text-xs px-3 py-1 bg-[#6cda84] text-white rounded-full hover:bg-[#5bc073] transition-colors"
-                >
-                  Seguir
-                </button>
               </div>
-            ))
-          ) : (
+              <button 
+                onClick={() => handleFollow(user.id)}
+                  className="text-xs px-3 py-1 bg-[#6cda84] text-white rounded-full hover:bg-[#5bc073] transition-colors"
+              >
+                  Seguir
+              </button>
+            </div>
+          ))
+        ) : (
             <p className="text-sm text-gray-500 text-center">No hay más usuarios para seguir</p>
-          )}
+        )}
         </div>
       </div>
     </div>

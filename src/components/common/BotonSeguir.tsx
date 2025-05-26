@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchAmigos, seguirUsuario, dejarDeSeguirUsuario } from '../../services/amigosService';
+import { seguidosService } from '../../services/seguidosService';
 import ConfirmDialog from './ConfirmDialog';
 
 interface BotonSeguirProps {
@@ -29,8 +29,8 @@ const BotonSeguir: React.FC<BotonSeguirProps> = ({
   useEffect(() => {
     const checkSeguimiento = async () => {
       try {
-        const seguidos = await fetchAmigos(Number(user.id));
-        const estaSiguiendo = seguidos.some((s: any) => s.usuarioQueEsSeguidoId === usuarioId);
+        const seguidos = await seguidosService.obtenerSeguidosIds(Number(user.id));
+        const estaSiguiendo = seguidos.some(s => s.usuarioQueEsSeguidoId === usuarioId);
         setSiguiendo(estaSiguiendo);
       } catch (error) {
         console.error('Error al verificar seguimiento:', error);
@@ -42,11 +42,14 @@ const BotonSeguir: React.FC<BotonSeguirProps> = ({
   }, [user.id, usuarioId]);
 
   const handleSeguir = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      await seguirUsuario(Number(user.id), usuarioId);
+      await seguidosService.seguirUsuario(Number(user.id), usuarioId);
       setSiguiendo(true);
-      onSeguir?.();
+      if (onSeguir) {
+        onSeguir();
+      }
     } catch (error) {
       console.error('Error al seguir usuario:', error);
     } finally {
@@ -55,11 +58,18 @@ const BotonSeguir: React.FC<BotonSeguirProps> = ({
   };
 
   const handleDejarDeSeguir = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      await dejarDeSeguirUsuario(Number(user.id), usuarioId);
+      await seguidosService.dejarDeSeguirUsuario(Number(user.id), usuarioId);
       setSiguiendo(false);
-      onDejarDeSeguir?.();
+      
+      // Disparar el evento para actualizar otros componentes
+      window.dispatchEvent(new CustomEvent('usuarioSeguido', { detail: { userId: usuarioId } }));
+      
+      if (onDejarDeSeguir) {
+        await onDejarDeSeguir();
+      }
     } catch (error) {
       console.error('Error al dejar de seguir usuario:', error);
     } finally {

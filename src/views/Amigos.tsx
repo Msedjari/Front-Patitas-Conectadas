@@ -5,12 +5,13 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import { userService, User, searchUsers } from '../services/userService';
 import { seguidosService } from '../services/seguidosService';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getUserImage } from '../components/home/HomeUtils';
 import BotonSeguir from '../components/common/BotonSeguir';
 
 const Amigos: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +21,7 @@ const Amigos: React.FC = () => {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
+  const [updateTrigger, setUpdateTrigger] = useState(0);
   const searchTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -88,25 +90,55 @@ const Amigos: React.FC = () => {
   const handleDejarDeSeguir = async (usuarioId: number) => {
     if (!user?.id) return;
     try {
+      setLoadingSeguidos(true);
       await seguidosService.dejarDeSeguirUsuario(Number(user.id), Number(usuarioId));
-      await actualizarListaSeguidos();
-      setSearchResults(prevResults => 
-        prevResults.map(result => 
-          Number(result.id) === Number(usuarioId)
-            ? { ...result, siguiendo: false }
-            : result
-        )
-      );
+      
+      // La actualización se manejará a través del evento usuarioSeguido
+      
     } catch (error) {
       console.error('Error al dejar de seguir usuario:', error);
       setError('Error al dejar de seguir usuario');
+    } finally {
+      setLoadingSeguidos(false);
     }
   };
 
   useEffect(() => {
+    const loadData = async () => {
     if (user?.id) {
-      actualizarListaSeguidos();
-    }
+        try {
+          setLoadingSeguidos(true);
+          const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
+          const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
+
+          const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
+            console.error(`Error al obtener detalles del usuario ${id}:`, e);
+            return null;
+          }));
+          const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
+          
+          setSeguidosDetails(details);
+        } catch (error) {
+          console.error('Error al cargar seguidos:', error);
+          setError('Error al cargar la lista de seguidos');
+        } finally {
+          setLoadingSeguidos(false);
+        }
+      }
+    };
+
+    // Escuchar el evento de seguimiento/dejar de seguir
+    const handleUsuarioSeguido = (event: CustomEvent) => {
+      console.log('Evento usuarioSeguido recibido:', event.detail);
+      loadData();
+    };
+
+    window.addEventListener('usuarioSeguido', handleUsuarioSeguido as EventListener);
+    loadData();
+
+    return () => {
+      window.removeEventListener('usuarioSeguido', handleUsuarioSeguido as EventListener);
+    };
   }, [user?.id]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,12 +251,6 @@ const Amigos: React.FC = () => {
                         >
                           Ver Perfil
                         </Link>
-                        <Link
-                          to={`/chat/${result.id}`}
-                          className="px-4 py-2 bg-[#6cda84] text-white rounded hover:bg-[#5bc373] transition-colors"
-                        >
-                          Chat
-                        </Link>
                       </div>
                     </div>
                   </li>
@@ -272,12 +298,6 @@ const Amigos: React.FC = () => {
                       className="px-4 py-2 bg-[#3d7b6f] text-white rounded hover:bg-[#2c5a52] transition-colors"
                     >
                       Ver Perfil
-                    </Link>
-                    <Link
-                      to={`/chat/${seguido.id}`}
-                      className="px-4 py-2 bg-[#6cda84] text-white rounded hover:bg-[#5bc373] transition-colors"
-                    >
-                      Chat
                     </Link>
                   </div>
                 </div>
