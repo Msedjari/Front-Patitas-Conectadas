@@ -4,6 +4,7 @@ import { config } from '../config';
 import { Post, CommentData } from '../components/home/types';
 import PostItem from '../components/home/PostItem';
 import { createComment } from '../services/commentService';
+import { getUserImage } from '../components/home/HomeUtils';
 
 const Guardados: React.FC = () => {
   const { user } = useAuth();
@@ -11,6 +12,39 @@ const Guardados: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userImagesCache, setUserImagesCache] = useState<{[key: number]: string}>({});
+
+  // Función para actualizar el caché de imágenes
+  const updateUserImagesCache = (userId: number, imagePath: string) => {
+    setUserImagesCache(prev => ({
+      ...prev,
+      [userId]: imagePath
+    }));
+  };
+
+  // Efecto para cargar el caché de imágenes al montar el componente
+  useEffect(() => {
+    const loadUserImagesCache = () => {
+      const cachedImages = localStorage.getItem('userImagesCache');
+      if (cachedImages) {
+        setUserImagesCache(JSON.parse(cachedImages));
+      }
+    };
+    loadUserImagesCache();
+  }, []);
+
+  // Efecto para escuchar cambios en el caché de imágenes
+  useEffect(() => {
+    const handleUserImageUpdate = (e: CustomEvent) => {
+      const { userId, imagePath } = e.detail;
+      setUserImagesCache(prev => ({
+        ...prev,
+        [userId]: imagePath
+      }));
+    };
+
+    window.addEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+    return () => window.removeEventListener('userImageUpdated', handleUserImageUpdate as EventListener);
+  }, []);
   
   // Función para manejar el envío de comentarios
   const handleCommentSubmit = async (commentData: CommentData) => {
@@ -62,7 +96,26 @@ const Guardados: React.FC = () => {
           if (!postResponse.ok) {
             throw new Error(`Error al obtener el post ${relacion.postId}`);
           }
-          return postResponse.json();
+          const post = await postResponse.json();
+
+          // Cargar la imagen del autor del post
+          try {
+            const userResponse = await fetch(`${config.apiUrl}/usuarios/${post.creadorId}/perfiles`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              if (userData && userData.img) {
+                updateUserImagesCache(Number(post.creadorId), userData.img);
+              }
+            }
+          } catch (error) {
+            console.error('Error al cargar imagen del usuario:', error);
+          }
+
+          return post;
         });
         
         const posts = await Promise.all(postsPromises);
