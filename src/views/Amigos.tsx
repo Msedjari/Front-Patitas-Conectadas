@@ -56,7 +56,8 @@ const Amigos: React.FC = () => {
       // Actualizar el caché de imágenes para cada usuario
       details.forEach(detail => {
         if (detail.img) {
-          updateUserImagesCache(Number(detail.id), detail.img);
+          const imageUrl = `${config.apiUrl}/uploads/${detail.img}`;
+          updateUserImagesCache(Number(detail.id), imageUrl);
         }
       });
       
@@ -106,7 +107,7 @@ const Amigos: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       console.log('Iniciando loadData en Amigos.tsx');
-    if (user?.id) {
+      if (user?.id) {
         try {
           setLoadingSeguidos(true);
           console.log('Obteniendo seguidos para usuario:', user.id);
@@ -120,6 +121,15 @@ const Amigos: React.FC = () => {
           }));
           const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
           console.log('Detalles de usuarios cargados:', details);
+          
+          // Actualizar el caché de imágenes para cada usuario
+          details.forEach(detail => {
+            if (detail.img) {
+              // Construir la URL completa de la imagen
+              const imageUrl = `${config.apiUrl}/uploads/${detail.img}`;
+              updateUserImagesCache(Number(detail.id), imageUrl);
+            }
+          });
           
           setSeguidosDetails(details);
         } catch (error) {
@@ -171,7 +181,8 @@ const Amigos: React.FC = () => {
         // Actualizar el caché de imágenes para los resultados de búsqueda
         filteredResults.forEach(result => {
           if (result.img) {
-            updateUserImagesCache(Number(result.id), result.img);
+            const imageUrl = `${config.apiUrl}/uploads/${result.img}`;
+            updateUserImagesCache(Number(result.id), imageUrl);
           }
         });
         
@@ -237,7 +248,12 @@ const Amigos: React.FC = () => {
                           src={getUserImage(userImagesCache, Number(result.id))}
                           alt={result.nombre || 'Usuario'}
                           className="w-12 h-12 rounded-full object-cover mr-4"
-                          onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}
+                          onError={(e) => {
+                            console.error('Error al cargar la imagen:', getUserImage(userImagesCache, Number(result.id)));
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = 'https://via.placeholder.com/150?text=Error';
+                          }}
                         />
                         <div>
                           <h3 className="font-medium text-lg text-[#2a2827]">{result.nombre} {result.apellido}</h3>
@@ -285,7 +301,12 @@ const Amigos: React.FC = () => {
                       src={getUserImage(userImagesCache, Number(seguido.id))}
                       alt={seguido.nombre || 'Usuario'}
                       className="w-12 h-12 rounded-full object-cover mr-4"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.svg'; }}
+                      onError={(e) => {
+                        console.error('Error al cargar la imagen:', getUserImage(userImagesCache, Number(seguido.id)));
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = 'https://via.placeholder.com/150?text=Error';
+                      }}
                     />
                     <div>
                       <h3 className="font-medium text-lg text-[#2a2827]">{seguido.nombre} {seguido.apellido}</h3>
