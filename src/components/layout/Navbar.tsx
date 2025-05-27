@@ -171,9 +171,9 @@ const Navbar: React.FC = () => {
                 console.error(`Error al cargar imagen para usuario ${user.id}:`, error);
               }
             }
-            setUserImagesCache(newCache);
-            localStorage.setItem('userImagesCache', JSON.stringify(newCache));
-          }
+              setUserImagesCache(newCache);
+              localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+            }
           
           setShowResults(true);
         } catch (error) {

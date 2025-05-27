@@ -984,12 +984,12 @@ const Perfil: React.FC = () => {
               )}
               {isOwnProfile && (
                 <>
-                  <button
-                    onClick={() => setEditMode(!editMode)}
-                    className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
-                  >
-                    {editMode ? "Cancelar" : "Editar perfil"}
-                  </button>
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
+                >
+                  {editMode ? "Cancelar" : "Editar perfil"}
+                </button>
                   <button
                     onClick={() => setShowDeleteModal(true)}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"

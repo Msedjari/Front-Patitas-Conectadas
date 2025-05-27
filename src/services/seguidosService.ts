@@ -98,16 +98,16 @@ export const seguidosService = {
 
       // Si la respuesta es exitosa (200 o 204) o si es 404 (la relación ya no existe)
       if (response.ok || response.status === 404) {
-        return { mensaje: `Has dejado de seguir al usuario con ID: ${usuarioASeguirId}` };
+          return { mensaje: `Has dejado de seguir al usuario con ID: ${usuarioASeguirId}` };
       }
 
       // Si no es exitosa ni 404, manejamos el error
       const errorText = await response.text();
       let errorMessage = `Error al dejar de seguir usuario: ${response.status} - ${errorText || response.statusText}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if(errorJson.message) errorMessage = `Error: ${errorJson.message}`;
-      } catch {}
+       try {
+           const errorJson = JSON.parse(errorText);
+           if(errorJson.message) errorMessage = `Error: ${errorJson.message}`;
+       } catch {}
 
       throw new Error(errorMessage);
 

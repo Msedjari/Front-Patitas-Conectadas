@@ -106,7 +106,7 @@ const Amigos: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       console.log('Iniciando loadData en Amigos.tsx');
-      if (user?.id) {
+    if (user?.id) {
         try {
           setLoadingSeguidos(true);
           console.log('Obteniendo seguidos para usuario:', user.id);
