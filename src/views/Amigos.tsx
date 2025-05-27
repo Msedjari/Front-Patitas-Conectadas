@@ -31,13 +31,48 @@ const Amigos: React.FC = () => {
         setUserImagesCache(JSON.parse(cachedImages));
       }
     };
+
+    // Función para verificar si el backend está disponible
+    const checkBackendAvailability = async () => {
+      try {
+        // Intentamos hacer una petición a una ruta que sabemos que existe
+        const response = await fetch(`${config.apiUrl}/usuarios/1`);
+        if (!response.ok) {
+          console.log('Backend no disponible');
+          // Si el backend no está disponible, limpiamos el caché
+          localStorage.removeItem('userImagesCache');
+          setUserImagesCache({});
+        }
+      } catch (error) {
+        console.log('Backend no disponible:', error);
+        // Si hay error, limpiamos el caché
+        localStorage.removeItem('userImagesCache');
+        setUserImagesCache({});
+      }
+    };
+
     loadUserImagesCache();
+    checkBackendAvailability();
+
+    // Verificar disponibilidad del backend cada 30 segundos
+    const intervalId = setInterval(checkBackendAvailability, 30000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   const updateUserImagesCache = (userId: number, imagePath: string) => {
-    const newCache = { ...userImagesCache, [userId]: imagePath };
-    setUserImagesCache(newCache);
-    localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+    try {
+      const newCache = { ...userImagesCache, [userId]: imagePath };
+      setUserImagesCache(newCache);
+      localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+    } catch (error) {
+      console.error('Error al actualizar el caché de imágenes:', error);
+      // Si hay error al actualizar el caché, lo limpiamos
+      localStorage.removeItem('userImagesCache');
+      setUserImagesCache({});
+    }
   };
 
   const actualizarListaSeguidos = async () => {
