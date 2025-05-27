@@ -31,6 +31,9 @@ import MascotaCard from './MascotaCard';
 import { BsPlusLg } from 'react-icons/bs';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaPaw } from 'react-icons/fa';
 import BotonSeguir from '../common/BotonSeguir';
+import { seguidosService } from '../../services/seguidosService';
+import { userService, User } from '../../services/userService';
+import { getUserImage } from '../home/HomeUtils';
 
 /**
  * Componente de Perfil de usuario
@@ -86,6 +89,8 @@ const Perfil: React.FC = () => {
   const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
   const [mascotaImagePreview, setMascotaImagePreview] = useState<string | null>(null);
   const [selectedMascotaImage, setSelectedMascotaImage] = useState<File | null>(null);
+  const [seguidosDetails, setSeguidosDetails] = useState<User[]>([]);
+  const [loadingSeguidos, setLoadingSeguidos] = useState(false);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -324,6 +329,34 @@ const Perfil: React.FC = () => {
     };
 
     loadMascotas();
+  }, [id, user?.id]);
+  
+  // Efecto para cargar los amigos del usuario
+  useEffect(() => {
+    const loadSeguidos = async () => {
+      const targetUserId = id || user?.id;
+      if (!targetUserId) return;
+
+      setLoadingSeguidos(true);
+      try {
+        const relaciones = await seguidosService.obtenerSeguidosIds(Number(targetUserId));
+        const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
+
+        const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
+          console.error(`Error al obtener detalles del usuario ${id}:`, e);
+          return null;
+        }));
+        const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
+        
+        setSeguidosDetails(details);
+      } catch (error) {
+        console.error('Error al cargar seguidos:', error);
+      } finally {
+        setLoadingSeguidos(false);
+      }
+    };
+
+    loadSeguidos();
   }, [id, user?.id]);
   
   /**
@@ -1384,6 +1417,52 @@ const Perfil: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Sección de Amigos */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-2xl font-semibold text-[#3d7b6f] mb-6">Amigos</h2>
+          
+          {loadingSeguidos ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6cda84]"></div>
+            </div>
+          ) : seguidosDetails.length === 0 ? (
+            <div className="text-center py-10 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">
+                {isOwnProfile ? "Aún no sigues a ningún usuario." : "Este usuario no sigue a nadie."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {seguidosDetails.map((seguido) => (
+                <div key={seguido.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                      <img
+                        src={getUserImage(userImagesCache, Number(seguido.id))}
+                        alt={seguido.nombre || 'Usuario'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/default-avatar.svg';
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-[#2a2827]">{seguido.nombre} {seguido.apellido}</h3>
+                      <p className="text-sm text-gray-500">{seguido.email}</p>
+                    </div>
+                    <Link
+                      to={Number(seguido.id) === Number(user?.id) ? '/mi-perfil' : `/perfil/${seguido.id}`}
+                      className="px-3 py-1.5 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] text-sm"
+                    >
+                      Ver Perfil
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Sección de Posts */}
