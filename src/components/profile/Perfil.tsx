@@ -91,6 +91,9 @@ const Perfil: React.FC = () => {
   const [selectedMascotaImage, setSelectedMascotaImage] = useState<File | null>(null);
   const [seguidosDetails, setSeguidosDetails] = useState<User[]>([]);
   const [loadingSeguidos, setLoadingSeguidos] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   
   /**
    * Obtiene los headers de autenticación necesarios para las peticiones a la API
@@ -819,6 +822,44 @@ const Perfil: React.FC = () => {
   };
   
   /**
+   * Maneja la eliminación de la cuenta del usuario
+   */
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    
+    if (deleteEmail !== user.email) {
+      setDeleteError('El email no coincide con tu cuenta');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setDeleteError(null);
+      
+      const response = await fetch(`${config.apiUrl}/usuarios/${user.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al eliminar la cuenta');
+      }
+      
+      // Limpiar datos de sesión
+      localStorage.removeItem(config.session.tokenKey);
+      localStorage.removeItem(config.session.userKey);
+      
+      // Redirigir al login
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error al eliminar cuenta:', error);
+      setDeleteError('Error al eliminar la cuenta. Por favor, intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  /**
    * Render condicional si no hay perfil disponible y no está cargando
    * Muestra un mensaje de error amigable con opción para reintentar
    */
@@ -942,12 +983,20 @@ const Perfil: React.FC = () => {
                 </div>
               )}
               {isOwnProfile && (
-                <button
-                  onClick={() => setEditMode(!editMode)}
-                  className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
-                >
-                  {editMode ? "Cancelar" : "Editar perfil"}
-                </button>
+                <>
+                  <button
+                    onClick={() => setEditMode(!editMode)}
+                    className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#38cd58] transition-colors"
+                  >
+                    {editMode ? "Cancelar" : "Editar perfil"}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Eliminar cuenta
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1496,6 +1545,50 @@ const Perfil: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Modal de Eliminación de Cuenta */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-red-600 mb-4">Eliminar Cuenta</h3>
+            <p className="text-gray-700 mb-4">
+              Esta acción es irreversible. Para confirmar, por favor ingresa tu email: <strong>{user?.email}</strong>
+            </p>
+            
+            <input
+              type="email"
+              value={deleteEmail}
+              onChange={(e) => setDeleteEmail(e.target.value)}
+              placeholder="Ingresa tu email"
+              className="w-full px-3 py-2 border rounded-md mb-4"
+            />
+            
+            {deleteError && (
+              <p className="text-red-500 mb-4">{deleteError}</p>
+            )}
+            
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteEmail('');
+                  setDeleteError(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? 'Eliminando...' : 'Eliminar Cuenta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
