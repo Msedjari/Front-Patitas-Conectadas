@@ -149,14 +149,31 @@ const Navbar: React.FC = () => {
           const results = await searchUsers(searchQuery);
           setSearchResults(results);
           
-          // Actualizar el caché de imágenes para los resultados de búsqueda
-          results.forEach(user => {
-            if (user.img) {
-              const newCache = { ...userImagesCache, [user.id]: user.img };
-              setUserImagesCache(newCache);
-              localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+          // Cargar las imágenes de perfil para los resultados
+          const token = localStorage.getItem(config.session.tokenKey);
+          if (token) {
+            const newCache = { ...userImagesCache };
+            for (const user of results) {
+              try {
+                const response = await fetch(`${config.apiUrl}/usuarios/${user.id}/perfiles`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  }
+                });
+
+                if (response.ok) {
+                  const profileData = await response.json();
+                  if (profileData && profileData.img) {
+                    newCache[user.id] = profileData.img;
+                  }
+                }
+              } catch (error) {
+                console.error(`Error al cargar imagen para usuario ${user.id}:`, error);
+              }
             }
-          });
+            setUserImagesCache(newCache);
+            localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+          }
           
           setShowResults(true);
         } catch (error) {
