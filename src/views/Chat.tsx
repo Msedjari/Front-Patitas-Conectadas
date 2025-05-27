@@ -67,8 +67,7 @@ const Chat: React.FC = () => {
             apellido: detalles.apellido,
             ultimoMensaje: '',
             noLeidos: 0,
-            ciudad: detalles.ciudad,
-            online: detalles.online
+            ciudad: detalles.ciudad
           };
         })
       );
@@ -171,16 +170,13 @@ const Chat: React.FC = () => {
                           }}
                         />
                       </div>
-                      {amigo.online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-[#2a2827] truncate">
                         {amigo.nombre} {amigo.apellido}
                       </p>
                       <p className="text-sm text-[#575350] truncate">
-                        {amigo.ciudad || 'Sin ubicación'}
+                        {amigo.ultimoMensaje || 'No hay mensajes'}
                       </p>
                     </div>
                   </div>

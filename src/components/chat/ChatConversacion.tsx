@@ -180,7 +180,6 @@ const ChatConversacion: React.FC<ChatConversacionProps> = ({
           </div>
           <div>
             <h2 className="font-semibold text-[#2a2827]">{otroUsuarioNombre}</h2>
-            <p className="text-sm text-[#575350]">En línea</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
