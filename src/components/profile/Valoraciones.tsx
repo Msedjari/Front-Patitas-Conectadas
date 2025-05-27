@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { config } from '../../config';
+import { valoracionesService } from '../../services/valoracionesService';
 
 interface Valoracion {
   id: number;
@@ -35,13 +36,15 @@ interface Perfil {
 interface ValoracionesProps {
   userId: number;
   key?: string;
+  isOwnProfile?: boolean;
 }
 
-const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
+const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile }) => {
   const [valoraciones, setValoraciones] = useState<Valoracion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [perfilesAutores, setPerfilesAutores] = useState<Record<number, Perfil>>({});
+  const [valoracionAEliminar, setValoracionAEliminar] = useState<number | null>(null);
 
   const formatearFecha = (fecha: string) => {
     const ahora = new Date();
@@ -148,6 +151,17 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
     fetchValoraciones();
   }, [userId]);
 
+  const handleEliminarValoracion = async (valoracionId: number) => {
+    try {
+      await valoracionesService.eliminarValoracion(valoracionId);
+      setValoraciones(prev => prev.filter(v => v.id !== valoracionId));
+      setValoracionAEliminar(null);
+    } catch (error) {
+      console.error('Error al eliminar valoración:', error);
+      setError('No se pudo eliminar la valoración');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
@@ -222,9 +236,22 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
                       ))}
                     </div>
                   </div>
-                  <span className="text-sm text-[#575350]">
-                    {formatearFecha(valoracion.fecha)}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-[#575350]">
+                      {formatearFecha(valoracion.fecha)}
+                    </span>
+                    {!isOwnProfile && (
+                      <button
+                        onClick={() => setValoracionAEliminar(valoracion.id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Eliminar valoración"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-2 text-[#2a2827]">{valoracion.contenido}</p>
               </div>
@@ -232,6 +259,32 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId }) => {
           </div>
         ))}
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      {valoracionAEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-[#2a2827] mb-4">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas eliminar esta valoración? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+                onClick={() => setValoracionAEliminar(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                onClick={() => handleEliminarValoracion(valoracionAEliminar)}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

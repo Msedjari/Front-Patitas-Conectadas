@@ -51,6 +51,11 @@ const Perfil: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   
+  // Resetear el modo de edición cuando cambia el ID del perfil
+  useEffect(() => {
+    setEditMode(false);
+  }, [id]);
+  
   // Estados para los campos editables del perfil
   const [descripcion, setDescripcion] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
@@ -1234,6 +1239,7 @@ const Perfil: React.FC = () => {
                 <Valoraciones 
                   userId={parseInt(id || user?.id || '0')} 
                   key={refreshValoraciones ? 'refresh' : 'normal'}
+                  isOwnProfile={isOwnProfile}
                 />
                 {!isOwnProfile && user && (
                   <div className="mt-6">
