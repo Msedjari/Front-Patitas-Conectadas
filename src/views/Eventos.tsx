@@ -8,10 +8,12 @@ import EventoForm from '../components/eventos/EventoForm';
 import EventosList from '../components/eventos/EventosList';
 import DeleteEventoDialog from '../components/eventos/DeleteEventoDialog';
 import { fetchEventos, createEvento, updateEvento, deleteEvento, Evento } from '../services/eventosService';
+import { usuarioEventoService, UsuarioEvento } from '../services/usuarioEventoService';
 
 const Eventos: React.FC = () => {
   const { user } = useAuth();
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [usuarioEventos, setUsuarioEventos] = useState<UsuarioEvento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -19,7 +21,6 @@ const Eventos: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventoToDelete, setEventoToDelete] = useState<Evento | null>(null);
   
-  // Cargar eventos al montar el componente
   useEffect(() => {
     fetchData();
   }, []);
@@ -27,19 +28,23 @@ const Eventos: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      setEventos(await fetchEventos());
+      // Obtener todas las relaciones usuario-evento
+      const relaciones = await usuarioEventoService.getAllUsuarioEventos();
+      setUsuarioEventos(relaciones);
+
+      // Obtener todos los eventos
+      const todosEventos = await fetchEventos();
+      setEventos(todosEventos);
     } catch (e) {
-      alert('Error al cargar eventos');
+      setError('Error al cargar eventos');
     }
     setLoading(false);
   };
   
-  // Limpiar el formulario
   const resetForm = () => {
     setEditingEvento(null);
   };
   
-  // Manejar envío del formulario
   const handleSubmit = async (data: Omit<Evento, 'id' | 'creadorId'>) => {
     setLoading(true);
     try {
@@ -47,24 +52,25 @@ const Eventos: React.FC = () => {
         const updated = await updateEvento(editingEvento.id, data);
         setEventos(eventos.map(ev => ev.id === updated.id ? updated : ev));
       } else if (user?.id) {
-        const created = await createEvento(data, user.id);
+        const created = await createEvento(data, Number(user.id));
         setEventos([...eventos, created]);
       }
       setShowForm(false);
       setEditingEvento(null);
+      // Recargar las relaciones después de crear/actualizar
+      const relaciones = await usuarioEventoService.getAllUsuarioEventos();
+      setUsuarioEventos(relaciones);
     } catch (e) {
-      alert('Error al guardar evento');
+      setError('Error al guardar evento');
     }
     setLoading(false);
   };
   
-  // Preparar edición de evento
   const handleEdit = (evento: Evento) => {
     setEditingEvento(evento);
     setShowForm(true);
   };
   
-  // Eliminar evento
   const handleDelete = (evento: Evento) => {
     setEventoToDelete(evento);
     setDeleteDialogOpen(true);
@@ -78,6 +84,9 @@ const Eventos: React.FC = () => {
         setEventos(eventos.filter(ev => ev.id !== eventoToDelete.id));
         setDeleteDialogOpen(false);
         setEventoToDelete(null);
+        // Recargar las relaciones después de eliminar
+        const relaciones = await usuarioEventoService.getAllUsuarioEventos();
+        setUsuarioEventos(relaciones);
       } catch (e) {
         alert('Error al eliminar evento');
       }
@@ -85,7 +94,6 @@ const Eventos: React.FC = () => {
     }
   };
   
-  // Formatear fecha para mostrar
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
@@ -95,6 +103,25 @@ const Eventos: React.FC = () => {
       minute: '2-digit'
     };
     return new Date(dateString).toLocaleDateString('es-ES', options);
+  };
+  
+  const canEditEvento = (evento: Evento): boolean => {
+    if (!user?.id) return false;
+    const relacion = usuarioEventos.find(ue => 
+      ue.eventoId === evento.id && 
+      ue.usuarioId === Number(user.id) && 
+      ue.rol === 'CREADOR'
+    );
+    return !!relacion;
+  };
+
+  const getEventoRol = (eventoId: number): string => {
+    if (!user?.id) return '';
+    const relacion = usuarioEventos.find(ue => 
+      ue.eventoId === eventoId && 
+      ue.usuarioId === Number(user.id)
+    );
+    return relacion?.rol || '';
   };
   
   if (loading && eventos.length === 0) {
@@ -116,14 +143,12 @@ const Eventos: React.FC = () => {
           </ActionButton>
         </div>
         
-        {/* Mensaje de error */}
         <ErrorMessage 
           message={error} 
           onClose={() => setError(null)}
           onRetry={fetchData}
         />
         
-        {/* Formulario para crear/editar evento */}
         {showForm && (
           <EventoForm 
             initialData={editingEvento || undefined}
@@ -136,16 +161,21 @@ const Eventos: React.FC = () => {
           />
         )}
         
-        {/* Lista de eventos */}
         <EventosList 
           eventos={eventos}
           onEdit={handleEdit}
           onDelete={handleDelete}
           formatDate={formatDate}
-          onCreateNew={() => setShowForm(true)}
+          canEditEvento={canEditEvento}
+          getEventoRol={getEventoRol}
+          onEventoUpdate={fetchData}
         />
         
-        <DeleteEventoDialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} onConfirm={confirmDelete} />
+        <DeleteEventoDialog 
+          open={deleteDialogOpen} 
+          onClose={() => setDeleteDialogOpen(false)} 
+          onConfirm={confirmDelete} 
+        />
       </div>
     </div>
   );

@@ -61,10 +61,10 @@ const MascotaCard: React.FC<MascotaCardProps> = ({
             {onDelete && (
               <button 
                 onClick={() => onDelete(mascota)}
-                className="bg-white rounded-full p-1.5 shadow-sm hover:bg-gray-100"
+                className="bg-white rounded-full p-1.5 shadow-sm hover:bg-red-50 transition-colors duration-200"
                 title="Eliminar mascota"
               >
-                <BsTrash className="text-red-500 text-sm" />
+                <BsTrash className="text-red-500 text-sm hover:text-red-600" />
               </button>
             )}
           </div>

@@ -17,6 +17,7 @@ import Guardados from '../../views/Guardados';
 import NotFound from '../../views/NotFound';
 import Protectoras from '../../views/Protectoras';
 import MascotaForm from '../../views/MascotaForm';
+import ParaTi from '../feed/ParaTi';
 
 // Componente para rutas protegidas
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -59,6 +60,7 @@ const AppRoutes: React.FC = () => {
       > 
         {/* Rutas anidadas dentro del layout principal */}
         <Route index element={<Home />} /> {/* Ruta principal/feed */}
+        <Route path="/para-ti" element={<ParaTi />} />
         <Route path="perfil" element={<Profile />} />
         <Route path="perfil/:id" element={<Profile />} />
         <Route path="mi-perfil" element={<Perfil />} />

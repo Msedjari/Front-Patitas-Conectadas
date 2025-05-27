@@ -14,8 +14,11 @@ export interface Mascota {
   id?: number;
   usuarioId: number;
   nombre: string;
+  especie: string;
   genero: string;
   raza: string;
+  edad?: number;
+  descripcion?: string;
   foto?: string;
 }
 

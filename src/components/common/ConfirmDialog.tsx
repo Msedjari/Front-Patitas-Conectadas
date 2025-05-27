@@ -31,16 +31,17 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold text-[#3d7b6f] mb-2">{title}</h3>
         <p className="text-gray-600 mb-6">{message}</p>
-        <div className="flex justify-end space-x-4">
+        
+        <div className="flex justify-end space-x-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
           >
             {confirmText}
           </button>
