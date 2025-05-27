@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getMascotasByUsuario, crearMascota, actualizarMascota, eliminarMascota, Mascota } from '../../services/mascotaService';
+import ConfirmDialog from '../common/ConfirmDialog';
+import SuccessMessage from '../common/SuccessMessage';
 
 /**
  * Componente para mostrar y gestionar las mascotas del usuario
@@ -12,6 +14,9 @@ const MascotasList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [mascotaToDelete, setMascotaToDelete] = useState<Mascota | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Estado para el formulario
   const [formData, setFormData] = useState({
@@ -112,22 +117,30 @@ const MascotasList: React.FC = () => {
   const handleDelete = async (mascota: Mascota) => {
     if (!user?.id || !mascota.id) return;
     
-    if (!confirm(`¿Estás seguro de eliminar a ${mascota.nombre}?`)) {
-      return;
-    }
+    setMascotaToDelete(mascota);
+    setShowConfirmDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!user?.id || !mascotaToDelete?.id) return;
     
     try {
       setLoading(true);
-      await eliminarMascota(parseInt(user.id), mascota.id);
+      await eliminarMascota(parseInt(user.id), mascotaToDelete.id);
       
       // Eliminar del estado
-      setMascotas(mascotas.filter(m => m.id !== mascota.id));
+      setMascotas(mascotas.filter(m => m.id !== mascotaToDelete.id));
       setError(null);
+      
+      // Mostrar mensaje de éxito
+      setSuccessMessage(`${mascotaToDelete.nombre} ha sido eliminado exitosamente.`);
     } catch (err) {
       console.error('Error al eliminar mascota:', err);
-      setError('No se pudo eliminar la mascota. Por favor, intenta de nuevo.');
+      setError('No se pudo eliminar la mascota. Por favor, intenta de nuevo más tarde.');
     } finally {
       setLoading(false);
+      setShowConfirmDialog(false);
+      setMascotaToDelete(null);
     }
   };
   
@@ -290,6 +303,27 @@ const MascotasList: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Diálogo de confirmación */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title="Eliminar mascota"
+        message={`¿Estás seguro de que deseas eliminar a ${mascotaToDelete?.nombre}? Esta acción no se puede deshacer.`}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowConfirmDialog(false);
+          setMascotaToDelete(null);
+        }}
+        confirmText="Eliminar"
+      />
+
+      {/* Mensaje de éxito */}
+      {successMessage && (
+        <SuccessMessage
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
       )}
     </div>
   );

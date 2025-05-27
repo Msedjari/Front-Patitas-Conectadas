@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { seguidosService } from '../services/seguidosService';
 import { chatService, Mensaje } from '../services/chatService';
+import { websocketService } from '../services/websocketService';
 import { getUserImage } from '../components/home/HomeUtils';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChatConversacion from '../components/chat/ChatConversacion';
@@ -27,6 +28,7 @@ const Chat: React.FC = () => {
   const [conversacionActiva, setConversacionActiva] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
 
   // Efecto para cargar el caché de imágenes al montar el componente
   useEffect(() => {
@@ -109,6 +111,50 @@ const Chat: React.FC = () => {
     return () => clearInterval(intervalo);
   }, [cargarAmigosYConversaciones]);
 
+  useEffect(() => {
+    // Conectar WebSocket cuando el componente se monta
+    websocketService.connect();
+
+    // Suscribirse a mensajes nuevos
+    const unsubscribeMessage = websocketService.onMessage((data) => {
+      if (data.emisorId === usuarioSeleccionado?.id) {
+        // Actualizar la conversación actual si el mensaje es del usuario seleccionado
+        setMensajes(prev => [...prev, data]);
+      }
+      // Actualizar la lista de amigos para mostrar el último mensaje
+      setAmigos(prev => prev.map(amigo => 
+        amigo.id === data.emisorId 
+          ? { ...amigo, ultimoMensaje: data.contenido, noLeidos: amigo.noLeidos + 1 }
+          : amigo
+      ));
+    });
+
+    // Suscribirse a notificaciones
+    const unsubscribeNotification = websocketService.onNotification((data) => {
+      if (data.type === 'new_message') {
+        // Mostrar notificación del sistema
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Nuevo mensaje', {
+            body: `${data.emisorNombre}: ${data.contenido}`,
+            icon: '/logo192.png'
+          });
+        }
+      }
+    });
+
+    // Solicitar permiso para notificaciones
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      // Limpiar suscripciones cuando el componente se desmonta
+      unsubscribeMessage();
+      unsubscribeNotification();
+      websocketService.disconnect();
+    };
+  }, [usuarioSeleccionado]);
+
   const handleSeleccionarUsuario = (usuario: Usuario) => {
     setUsuarioSeleccionado(usuario);
   };
@@ -188,7 +234,7 @@ const Chat: React.FC = () => {
       </div>
 
       {/* Área de conversación */}
-      <div className={`flex-1 bg-white ${!showConversacion ? 'hidden md:block' : 'block'}`}>
+      <div className={`flex-1 ${showConversacion ? 'block' : 'hidden md:block'}`}>
         {conversacionActiva ? (
           <ChatConversacion
             otroUsuarioId={conversacionActiva.id}
@@ -215,4 +261,4 @@ const Chat: React.FC = () => {
   );
 };
 
-export default Chat; 
+export default Chat;

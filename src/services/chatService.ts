@@ -16,7 +16,8 @@ export const chatService = {
     const response = await api.post('/chat/enviar', {
       emisorId,
       receptorId,
-      contenido
+      contenido,
+      enviarNotificacion: true
     });
     return response.data;
   },

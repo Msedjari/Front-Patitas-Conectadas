@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Evento } from '../../services/eventosService';
+import { usuarioEventoService } from '../../services/usuarioEventoService';
+import { useAuth } from '../../context/AuthContext';
 import ActionButton from '../common/ActionButton';
 import { config } from '../../config';
 
@@ -8,10 +10,15 @@ interface Props {
   onEdit: (evento: Evento) => void;
   onDelete: (evento: Evento) => void;
   formatDate: (date: string) => string;
+  canEditEvento: (evento: Evento) => boolean;
+  getEventoRol: (eventoId: number) => string;
+  onEventoUpdate?: () => void;
 }
 
-const EventosList: React.FC<Props> = ({ eventos, onEdit, onDelete, formatDate }) => {
+const EventosList: React.FC<Props> = ({ eventos, onEdit, onDelete, formatDate, canEditEvento, getEventoRol, onEventoUpdate }) => {
+  const { user } = useAuth();
   const [joinedEvents, setJoinedEvents] = useState<{[key: string]: boolean}>({});
+  const [loading, setLoading] = useState<{[key: number]: boolean}>({});
 
   // Verificar eventos a los que el usuario ya se ha unido
   useEffect(() => {
@@ -90,57 +97,116 @@ const EventosList: React.FC<Props> = ({ eventos, onEdit, onDelete, formatDate })
     }
   };
 
+  const handleAsistir = async (eventoId: number) => {
+    if (!user?.id) return;
+    
+    setLoading(prev => ({ ...prev, [eventoId]: true }));
+    try {
+      await usuarioEventoService.asistirAEvento(user.id, eventoId);
+      if (onEventoUpdate) onEventoUpdate();
+    } catch (error) {
+      console.error('Error al asistir al evento:', error);
+      alert('Error al asistir al evento');
+    } finally {
+      setLoading(prev => ({ ...prev, [eventoId]: false }));
+    }
+  };
+
+  const handleNoAsistir = async (eventoId: number) => {
+    if (!user?.id) return;
+    
+    setLoading(prev => ({ ...prev, [eventoId]: true }));
+    try {
+      await usuarioEventoService.noAsistirAEvento(user.id, eventoId);
+      if (onEventoUpdate) onEventoUpdate();
+    } catch (error) {
+      console.error('Error al cancelar asistencia:', error);
+      alert('Error al cancelar asistencia');
+    } finally {
+      setLoading(prev => ({ ...prev, [eventoId]: false }));
+    }
+  };
+
+  const renderAsistenciaButton = (evento: Evento) => {
+    const rol = getEventoRol(evento.id);
+    const isLoading = loading[evento.id];
+
+    if (rol === 'CREADOR') {
+      return null; // No mostrar botón para creadores
+    }
+
+    if (isLoading) {
+      return (
+        <button
+          disabled
+          className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md cursor-not-allowed"
+        >
+          Cargando...
+        </button>
+      );
+    }
+
+    if (rol === 'ASISTENTE') {
+      return (
+        <button
+          onClick={() => handleNoAsistir(evento.id)}
+          className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+        >
+          No asistir
+        </button>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => handleAsistir(evento.id)}
+        className="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-md transition-colors"
+      >
+        Asistir
+      </button>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      {eventos.map(ev => (
-        <div key={ev.id} className="bg-white rounded-lg shadow-sm p-6 border border-[#9fe0b7] hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-xl font-semibold text-[#3d7b6f]">{ev.nombre}</h3>
-            <div className="flex space-x-2">
-              <ActionButton
-                onClick={() => onEdit(ev)}
-                variant="outline"
-                size="sm"
-              >
-                Editar
-              </ActionButton>
-              <ActionButton
-                onClick={() => onDelete(ev)}
-                variant="danger"
-                size="sm"
-              >
-                Eliminar
-              </ActionButton>
+      {eventos.map((evento) => (
+        <div key={evento.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">{evento.nombre}</h3>
+              <p className="text-sm text-gray-600 mt-1">{evento.descripcion}</p>
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Ubicación:</span> {evento.ubicacion}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Fecha:</span> {formatDate(evento.fecha)}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Tu rol:</span> {getEventoRol(evento.id)}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end space-y-2">
+              {renderAsistenciaButton(evento)}
+              {canEditEvento(evento) && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => onEdit(evento)}
+                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => onDelete(evento)}
+                    className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          
-          <p className="text-[#2a2827] mb-4">{ev.descripcion}</p>
-          
-          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-            <div className="flex items-center text-[#575350]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-[#3d7b6f]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-              {ev.ubicacion}
-            </div>
-            <div className="flex items-center text-[#575350]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-[#3d7b6f]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-              </svg>
-              {formatDate(ev.fecha)}
-            </div>
-          </div>
-
-          <button
-            onClick={() => handleJoinEvent(ev.id!)}
-            className={`w-full text-sm font-medium px-4 py-2 rounded-full ${
-              joinedEvents[ev.id!]
-                ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                : 'bg-[#3d7b6f] text-white hover:bg-[#2e5d54]'
-            }`}
-          >
-            {joinedEvents[ev.id!] ? 'Salir del evento' : 'Unirse al evento'}
-          </button>
         </div>
       ))}
     </div>

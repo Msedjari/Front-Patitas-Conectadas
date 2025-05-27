@@ -1,12 +1,15 @@
 import { config } from '../config';
 
 export interface Evento {
-  id?: number;
+  id: number;
   nombre: string;
   descripcion: string;
   ubicacion: string;
   fecha: string;
   creadorId?: number;
+  rol?: 'CREADOR' | 'ASISTENTE';
+  nombreUsuario?: string;
+  apellidoUsuario?: string;
 }
 
 export const fetchEventos = async (): Promise<Evento[]> => {
@@ -35,7 +38,10 @@ export const createEvento = async (evento: Omit<Evento, 'id' | 'creadorId'>, usu
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(evento)
+    body: JSON.stringify({
+      ...evento,
+      rol: 'CREADOR'
+    })
   });
   if (!res.ok) throw new Error('Error al crear evento');
   return await res.json();

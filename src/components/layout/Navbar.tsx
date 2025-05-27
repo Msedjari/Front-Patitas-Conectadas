@@ -5,6 +5,8 @@ import { config } from '../../config';
 import logoImage from '../../assets/logo.png'; // Importación del logo
 import { getUserImage } from '../home/HomeUtils';
 import { searchUsers, User } from '../../services/userService';
+import NotificacionesDropdown from '../notificaciones/NotificacionesDropdown';
+import { notificacionesService } from '../../services/notificacionesService';
 
 /**
  * Navbar Component
@@ -29,8 +31,8 @@ const Navbar: React.FC = () => {
   
   // State to control user menu dropdown visibility
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  // State for unread notification count - ahora comentado
-  // const [notificationCount, setNotificationCount] = useState(0);
+  const [showNotificaciones, setShowNotificaciones] = useState(false);
+  const [noLeidas, setNoLeidas] = useState(0);
   const [userImagesCache, setUserImagesCache] = useState<Record<number, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -40,29 +42,18 @@ const Navbar: React.FC = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  /**
-   * Fetch unread notifications when user is authenticated - ahora comentado
-   */
-  /*
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const cargarNoLeidas = async () => {
       try {
-        // API call to fetch unread notifications
-        const response = await fetch(`${config.apiUrl}/notificaciones/no-leidas`);
-        const data = await response.json();
-        setNotificationCount(data.count);
+        const count = await notificacionesService.obtenerNoLeidas();
+        setNoLeidas(count);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
-        setNotificationCount(0);
+        console.error('Error al cargar notificaciones no leídas:', error);
       }
     };
-    
-    // Only fetch notifications if user is authenticated
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
-  */
+
+    cargarNoLeidas();
+  }, []);
   
   // Efecto para cargar la imagen del usuario
   useEffect(() => {
@@ -307,6 +298,14 @@ const Navbar: React.FC = () => {
                 <path d="M12 2.1L1 12h3v9h6v-6h4v6h6v-9h3L12 2.1zm0 2.691l6 5.4V19h-2v-6H8v6H6v-8.809l6-5.4z"/>
               </svg>
             </Link>
+
+            {/* Para ti icon */}
+            <Link to="/para-ti" className="flex-1 px-3 py-2 rounded-md text-[#3d7b6f] hover:bg-white transition-colors flex justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path d="M7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+              </svg>
+            </Link>
             
             {/* Groups icon */}
             <Link to="/grupos" className="flex-1 px-3 py-2 rounded-md text-[#3d7b6f] hover:bg-white transition-colors flex justify-center">
@@ -329,26 +328,27 @@ const Navbar: React.FC = () => {
           {/* Notification and message buttons - Only visible for authenticated users */}
           {user && (
             <>
-              {/* Notifications button with counter badge - ahora comentado */}
-              {/*
-              <button className="p-2 rounded-full bg-white hover:bg-gray-200 text-[#3d7b6f] relative">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
-                </svg>
-                {notificationCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-[#2e82dc] rounded-full">
-                    {notificationCount}
-                  </span>
+              {/* Notifications button with counter badge */}
+              <div className="relative">
+                <button 
+                  className="p-2 rounded-full bg-white hover:bg-gray-200 text-[#3d7b6f] relative"
+                  onClick={() => setShowNotificaciones(!showNotificaciones)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+                  </svg>
+                  {noLeidas > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-[#2e82dc] rounded-full">
+                      {noLeidas}
+                    </span>
+                  )}
+                </button>
+                
+                {showNotificaciones && (
+                  <NotificacionesDropdown onClose={() => setShowNotificaciones(false)} />
                 )}
-              </button>
-              */}
+              </div>
               
-              {/* Messages button */}
-              <button className="p-2 rounded-full bg-white hover:bg-gray-200 text-[#3d7b6f]">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-                </svg>
-              </button>
             </>
           )}
           
