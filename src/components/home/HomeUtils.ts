@@ -59,6 +59,7 @@ export const getUserImage = (userImagesCache: Record<number, string>, userId?: n
   
   // Registrar para depuración
   console.log(`getUserImage: Buscando imagen para usuario ${numericUserId} - Resultado: ${cachedImage || 'no encontrada'}`);
+  console.log('Caché completo:', userImagesCache);
   
   // Si hay una URL de imagen cacheada
   if (cachedImage) {
@@ -66,12 +67,14 @@ export const getUserImage = (userImagesCache: Record<number, string>, userId?: n
     if (cachedImage.startsWith('http')) {
       return cachedImage;
     }
-    // Si es una ruta relativa que no empieza con /, construir la URL completa
-    if (!cachedImage.startsWith('/')) {
-      return `${config.apiUrl}/uploads/${cachedImage}`;
-    }
-    // Si es una ruta que empieza con /, construir la URL completa
-    return `${config.apiUrl}${cachedImage}`;
+    
+    // Limpiar la ruta de la imagen
+    const cleanPath = cachedImage.replace(/^\/+/, '');
+    
+    // Construir la URL completa usando /uploads
+    const fullUrl = `${config.apiUrl}/uploads/${cleanPath}`;
+    console.log(`getUserImage: Construyendo URL: ${fullUrl}`);
+    return fullUrl;
   }
   
   // Retornamos la imagen predeterminada si no hay una válida en el caché

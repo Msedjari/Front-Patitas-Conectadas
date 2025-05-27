@@ -75,33 +75,75 @@ const Amigos: React.FC = () => {
     }
   };
 
-  const actualizarListaSeguidos = async () => {
-    if (!user?.id) return;
-    setLoadingSeguidos(true);
-    try {
-      const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
-      const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
+  const loadData = async () => {
+    console.log('Iniciando loadData en Amigos.tsx');
+    if (user?.id) {
+      try {
+        setLoadingSeguidos(true);
+        console.log('Obteniendo seguidos para usuario:', user.id);
+        const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
+        console.log('Relaciones obtenidas:', relaciones);
+        const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
 
-      const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
-        console.error(`Error al obtener detalles del usuario ${id}:`, e);
-        return null;
-      }));
-      const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
-      
-      // Actualizar el caché de imágenes para cada usuario
-      details.forEach(detail => {
-        if (detail.img) {
-          const imageUrl = `${config.apiUrl}/uploads/${detail.img}`;
-          updateUserImagesCache(Number(detail.id), imageUrl);
-        }
-      });
-      
-      setSeguidosDetails(details);
-    } catch (error) {
-      console.error('Error al cargar seguidos:', error);
-      setError('Error al cargar la lista de seguidos');
-    } finally {
-      setLoadingSeguidos(false);
+        // Crear un nuevo objeto de caché
+        const newCache = { ...userImagesCache };
+
+        const detailsPromises = ids.map(async id => {
+          try {
+            // Primero intentamos obtener el perfil del usuario
+            const profileResponse = await fetch(`${config.apiUrl}/usuarios/${id}/perfiles`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem(config.session.tokenKey)}`
+              }
+            });
+
+            let userData = await userService.getUserById(id);
+            
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              console.log(`Perfil obtenido para usuario ${id}:`, profileData);
+              
+              if (profileData && profileData.img) {
+                // Actualizar el caché con la imagen del perfil
+                const cleanPath = profileData.img.replace(/^\/+/, '');
+                const relativePath = cleanPath.includes(config.apiUrl)
+                  ? cleanPath.replace(`${config.apiUrl}/`, '')
+                  : cleanPath;
+                
+                newCache[id] = relativePath;
+                userData = { ...userData, img: relativePath };
+              }
+            } else {
+              console.log(`No se pudo obtener perfil para usuario ${id}, usando datos básicos`);
+            }
+            
+            return userData;
+          } catch (e) {
+            console.error(`Error al obtener detalles del usuario ${id}:`, e);
+            return null;
+          }
+        });
+
+        const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
+        setSeguidosDetails(details);
+
+        // Actualizar el caché una sola vez con todas las imágenes
+        setUserImagesCache(newCache);
+        localStorage.setItem('userImagesCache', JSON.stringify(newCache));
+        
+        // Disparar evento para actualizar otros componentes
+        Object.entries(newCache).forEach(([userId, imagePath]) => {
+          window.dispatchEvent(new CustomEvent('userImageUpdated', {
+            detail: { userId: Number(userId), imagePath }
+          }));
+        });
+
+      } catch (error) {
+        console.error('Error al cargar seguidos:', error);
+        setError('Error al cargar la lista de seguidos');
+      } finally {
+        setLoadingSeguidos(false);
+      }
     }
   };
 
@@ -109,7 +151,7 @@ const Amigos: React.FC = () => {
     if (!user?.id) return;
     try {
       await seguidosService.seguirUsuario(Number(user.id), Number(usuarioId));
-      await actualizarListaSeguidos();
+      await loadData();
       setSearchResults(prevResults => 
         prevResults.map(result => 
           Number(result.id) === Number(usuarioId)
@@ -140,42 +182,6 @@ const Amigos: React.FC = () => {
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      console.log('Iniciando loadData en Amigos.tsx');
-      if (user?.id) {
-        try {
-          setLoadingSeguidos(true);
-          console.log('Obteniendo seguidos para usuario:', user.id);
-          const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
-          console.log('Relaciones obtenidas:', relaciones);
-          const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
-
-          const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
-            console.error(`Error al obtener detalles del usuario ${id}:`, e);
-            return null;
-          }));
-          const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
-          console.log('Detalles de usuarios cargados:', details);
-          
-          // Actualizar el caché de imágenes para cada usuario
-          details.forEach(detail => {
-            if (detail.img) {
-              // Construir la URL completa de la imagen
-              const imageUrl = `${config.apiUrl}/uploads/${detail.img}`;
-              updateUserImagesCache(Number(detail.id), imageUrl);
-            }
-          });
-          
-          setSeguidosDetails(details);
-        } catch (error) {
-          console.error('Error al cargar seguidos:', error);
-          setError('Error al cargar la lista de seguidos');
-        } finally {
-          setLoadingSeguidos(false);
-        }
-      }
-    };
-
     // Escuchar el evento de seguimiento/dejar de seguir
     const handleUsuarioSeguido = () => {
       console.log('Evento usuarioSeguido recibido en Amigos.tsx');
@@ -236,7 +242,7 @@ const Amigos: React.FC = () => {
     if (!user?.id) return;
     try {
       await seguidosService.seguirUsuario(Number(user.id), Number(userId));
-      await actualizarListaSeguidos();
+      await loadData();
     } catch (error) {
       console.error('Error al seguir usuario:', error);
     }
@@ -258,7 +264,7 @@ const Amigos: React.FC = () => {
         <ErrorMessage 
           message={error} 
           onClose={() => setError(null)}
-          onRetry={actualizarListaSeguidos}
+          onRetry={loadData}
         />
         
         <div className="mb-8">
