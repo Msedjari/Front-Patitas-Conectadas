@@ -105,10 +105,13 @@ const Amigos: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-    if (user?.id) {
+      console.log('Iniciando loadData en Amigos.tsx');
+      if (user?.id) {
         try {
           setLoadingSeguidos(true);
+          console.log('Obteniendo seguidos para usuario:', user.id);
           const relaciones = await seguidosService.obtenerSeguidosIds(Number(user.id));
+          console.log('Relaciones obtenidas:', relaciones);
           const ids = relaciones.map(rel => Number(rel.usuarioQueEsSeguidoId));
 
           const detailsPromises = ids.map(id => userService.getUserById(id).catch(e => {
@@ -116,6 +119,7 @@ const Amigos: React.FC = () => {
             return null;
           }));
           const details = (await Promise.all(detailsPromises)).filter(detail => detail !== null) as User[];
+          console.log('Detalles de usuarios cargados:', details);
           
           setSeguidosDetails(details);
         } catch (error) {
@@ -128,16 +132,18 @@ const Amigos: React.FC = () => {
     };
 
     // Escuchar el evento de seguimiento/dejar de seguir
-    const handleUsuarioSeguido = (event: CustomEvent) => {
-      console.log('Evento usuarioSeguido recibido:', event.detail);
+    const handleUsuarioSeguido = () => {
+      console.log('Evento usuarioSeguido recibido en Amigos.tsx');
       loadData();
     };
 
-    window.addEventListener('usuarioSeguido', handleUsuarioSeguido as EventListener);
+    console.log('Registrando listener de usuarioSeguido en Amigos.tsx');
+    window.addEventListener('usuarioSeguido', handleUsuarioSeguido);
     loadData();
 
     return () => {
-      window.removeEventListener('usuarioSeguido', handleUsuarioSeguido as EventListener);
+      console.log('Limpiando listener de usuarioSeguido en Amigos.tsx');
+      window.removeEventListener('usuarioSeguido', handleUsuarioSeguido);
     };
   }, [user?.id]);
 

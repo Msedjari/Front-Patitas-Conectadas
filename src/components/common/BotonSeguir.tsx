@@ -59,15 +59,22 @@ const BotonSeguir: React.FC<BotonSeguirProps> = ({
 
   const handleDejarDeSeguir = async () => {
     if (!user?.id) return;
+    console.log('Iniciando handleDejarDeSeguir en BotonSeguir.tsx');
     setLoading(true);
     try {
+      console.log('Llamando a dejarDeSeguirUsuario con:', { userId: user.id, usuarioId });
       await seguidosService.dejarDeSeguirUsuario(Number(user.id), usuarioId);
+      console.log('Usuario dejado de seguir exitosamente');
       setSiguiendo(false);
       
       // Disparar el evento para actualizar otros componentes
-      window.dispatchEvent(new CustomEvent('usuarioSeguido', { detail: { userId: usuarioId } }));
+      console.log('Disparando evento usuarioSeguido');
+      const event = new Event('usuarioSeguido');
+      window.dispatchEvent(event);
+      console.log('Evento usuarioSeguido disparado');
       
       if (onDejarDeSeguir) {
+        console.log('Ejecutando callback onDejarDeSeguir');
         await onDejarDeSeguir();
       }
     } catch (error) {
