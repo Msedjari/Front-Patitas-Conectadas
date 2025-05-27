@@ -240,7 +240,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile }) => 
                     <span className="text-sm text-[#575350]">
                       {formatearFecha(valoracion.fecha)}
                     </span>
-                    {!isOwnProfile && (
+                    {valoracion.autorId === userId && (
                       <button
                         onClick={() => setValoracionAEliminar(valoracion.id)}
                         className="text-red-500 hover:text-red-700"
