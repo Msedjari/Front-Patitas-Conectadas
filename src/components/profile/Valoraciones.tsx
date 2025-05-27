@@ -37,9 +37,10 @@ interface ValoracionesProps {
   userId: number;
   key?: string;
   isOwnProfile?: boolean;
+  currentUserId: number;
 }
 
-const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile }) => {
+const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile, currentUserId }) => {
   const [valoraciones, setValoraciones] = useState<Valoracion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,7 +154,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile }) => 
 
   const handleEliminarValoracion = async (valoracionId: number) => {
     try {
-      await valoracionesService.eliminarValoracion(valoracionId);
+      await valoracionesService.eliminarValoracion(valoracionId, currentUserId);
       setValoraciones(prev => prev.filter(v => v.id !== valoracionId));
       setValoracionAEliminar(null);
     } catch (error) {
@@ -240,7 +241,7 @@ const Valoraciones: React.FC<ValoracionesProps> = ({ userId, isOwnProfile }) => 
                     <span className="text-sm text-[#575350]">
                       {formatearFecha(valoracion.fecha)}
                     </span>
-                    {valoracion.autorId === userId && (
+                    {valoracion.autorId === currentUserId && currentUserId !== 0 && (
                       <button
                         onClick={() => setValoracionAEliminar(valoracion.id)}
                         className="text-red-500 hover:text-red-700"

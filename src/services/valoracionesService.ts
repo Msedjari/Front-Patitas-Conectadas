@@ -95,11 +95,30 @@ export const valoracionesService = {
   },
 
   // Eliminar una valoración
-  eliminarValoracion: async (id: number): Promise<void> => {
+  eliminarValoracion: async (id: number, autorId: number): Promise<void> => {
     try {
       const token = localStorage.getItem(config.session.tokenKey);
       if (!token) throw new Error('No hay token de autenticación');
 
+      // Primero obtenemos la valoración para verificar el autor
+      const valoracionResponse = await fetch(`${config.apiUrl}/valoraciones/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!valoracionResponse.ok) {
+        throw new Error('Error al obtener la valoración');
+      }
+
+      const valoracion = await valoracionResponse.json();
+
+      // Verificamos que el usuario actual sea el autor
+      if (valoracion.autorId !== autorId) {
+        throw new Error('No tienes permiso para eliminar esta valoración');
+      }
+
+      // Si es el autor, procedemos a eliminar
       const response = await fetch(`${config.apiUrl}/valoraciones/${id}`, {
         method: 'DELETE',
         headers: {

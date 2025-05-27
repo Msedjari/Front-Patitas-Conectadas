@@ -1240,6 +1240,7 @@ const Perfil: React.FC = () => {
                   userId={parseInt(id || user?.id || '0')} 
                   key={refreshValoraciones ? 'refresh' : 'normal'}
                   isOwnProfile={isOwnProfile}
+                  currentUserId={user?.id ? parseInt(user.id) : 0}
                 />
                 {!isOwnProfile && user && (
                   <div className="mt-6">
