@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getMascotasByUsuario, crearMascota, actualizarMascota, eliminarMascota, Mascota } from '../../services/mascotaService';
-import ConfirmDialog from '../common/ConfirmDialog';
+import { fetchMascotasByUserId, createMascota, updateMascota, deleteMascota, Mascota } from '../../services/mascotasService';
+import DeleteMascotaDialog from './DeleteMascotaDialog';
 import SuccessMessage from '../common/SuccessMessage';
 
 /**
@@ -14,7 +14,7 @@ const MascotasList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingMascota, setEditingMascota] = useState<Mascota | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [mascotaToDelete, setMascotaToDelete] = useState<Mascota | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
@@ -22,7 +22,7 @@ const MascotasList: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     genero: 'Macho', // Por defecto
-    raza: ''
+    especie: ''
   });
   
   // Cargar mascotas al montar el componente
@@ -32,7 +32,7 @@ const MascotasList: React.FC = () => {
       
       try {
         setLoading(true);
-        const mascotasData = await getMascotasByUsuario(parseInt(user.id));
+        const mascotasData = await fetchMascotasByUserId(parseInt(user.id));
         setMascotas(mascotasData);
         setError(null);
       } catch (err) {
@@ -57,7 +57,7 @@ const MascotasList: React.FC = () => {
     setFormData({
       nombre: '',
       genero: 'Macho',
-      raza: ''
+      especie: ''
     });
     setEditingMascota(null);
   };
@@ -70,12 +70,18 @@ const MascotasList: React.FC = () => {
     try {
       setLoading(true);
       
+      // Convertir formData a FormData
+      const formDataObj = new FormData();
+      formDataObj.append('nombre', formData.nombre);
+      formDataObj.append('genero', formData.genero);
+      formDataObj.append('especie', formData.especie);
+      formDataObj.append('usuarioId', user.id.toString());
+      
       if (editingMascota) {
         // Actualizar mascota existente
-        const updated = await actualizarMascota(
-          parseInt(user.id),
+        const updated = await updateMascota(
           editingMascota.id!,
-          formData
+          formDataObj
         );
         
         // Actualizar el estado con la mascota actualizada
@@ -84,7 +90,7 @@ const MascotasList: React.FC = () => {
         ));
       } else {
         // Crear nueva mascota
-        const newMascota = await crearMascota(parseInt(user.id), formData);
+        const newMascota = await createMascota(formDataObj);
         
         // Agregar la nueva mascota al estado
         setMascotas([...mascotas, newMascota]);
@@ -108,7 +114,7 @@ const MascotasList: React.FC = () => {
     setFormData({
       nombre: mascota.nombre,
       genero: mascota.genero,
-      raza: mascota.raza
+      especie: mascota.especie
     });
     setShowForm(true);
   };
@@ -118,7 +124,7 @@ const MascotasList: React.FC = () => {
     if (!user?.id || !mascota.id) return;
     
     setMascotaToDelete(mascota);
-    setShowConfirmDialog(true);
+    setShowDeleteDialog(true);
   };
 
   const confirmDelete = async () => {
@@ -126,7 +132,7 @@ const MascotasList: React.FC = () => {
     
     try {
       setLoading(true);
-      await eliminarMascota(parseInt(user.id), mascotaToDelete.id);
+      await deleteMascota(parseInt(user.id), mascotaToDelete.id);
       
       // Eliminar del estado
       setMascotas(mascotas.filter(m => m.id !== mascotaToDelete.id));
@@ -139,7 +145,7 @@ const MascotasList: React.FC = () => {
       setError('No se pudo eliminar la mascota. Por favor, intenta de nuevo más tarde.');
     } finally {
       setLoading(false);
-      setShowConfirmDialog(false);
+      setShowDeleteDialog(false);
       setMascotaToDelete(null);
     }
   };
@@ -215,18 +221,18 @@ const MascotasList: React.FC = () => {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="raza" className="block text-sm font-medium text-[#2a2827] mb-1">
-              Raza
+            <label htmlFor="especie" className="block text-sm font-medium text-[#2a2827] mb-1">
+              Especie
             </label>
             <input
               type="text"
-              id="raza"
-              name="raza"
-              value={formData.raza}
+              id="especie"
+              name="especie"
+              value={formData.especie}
               onChange={handleInputChange}
               required
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9fe0b7]"
-              placeholder="Raza de tu mascota"
+              placeholder="Especie de tu mascota"
             />
           </div>
           
@@ -276,7 +282,7 @@ const MascotasList: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-medium text-[#3d7b6f]">{mascota.nombre}</h3>
-                    <p className="text-[#575350] text-sm">{mascota.raza}</p>
+                    <p className="text-[#575350] text-sm">{mascota.especie}</p>
                     <p className="text-[#575350] text-sm">{mascota.genero}</p>
                   </div>
                   
@@ -305,17 +311,15 @@ const MascotasList: React.FC = () => {
         </div>
       )}
 
-      {/* Diálogo de confirmación */}
-      <ConfirmDialog
-        isOpen={showConfirmDialog}
-        title="Eliminar mascota"
-        message={`¿Estás seguro de que deseas eliminar a ${mascotaToDelete?.nombre}? Esta acción no se puede deshacer.`}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setShowConfirmDialog(false);
+      {/* Diálogo de confirmación de eliminación */}
+      <DeleteMascotaDialog
+        isOpen={showDeleteDialog}
+        mascota={mascotaToDelete}
+        onClose={() => {
+          setShowDeleteDialog(false);
           setMascotaToDelete(null);
         }}
-        confirmText="Eliminar"
+        onConfirm={confirmDelete}
       />
 
       {/* Mensaje de éxito */}

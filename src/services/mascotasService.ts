@@ -16,7 +16,6 @@ export interface Mascota {
   nombre: string;
   especie: string;
   genero: string;
-  especie: string;
   foto?: string;
   fechaNacimiento?: string;
   descripcion?: string;
