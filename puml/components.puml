@@ -1,0 +1,57 @@
+@startuml Components
+!theme plain
+skinparam classStyle rectangle
+
+package "Components" {
+    package "Layout" {
+
+    }
+
+    package "Common" {
+    }
+
+    package "Auth" {
+    }
+
+    package "Profile" {
+    }
+
+    package "Post" {
+    }
+
+    package "Chat" {
+    }
+
+    package "Groups" {
+    }
+
+    package "Events" {
+    }
+
+    package "Feed" {
+    }
+
+    package "Notifications" {
+    }
+
+    package "Amigos" {
+    }
+
+    package "SavedPosts" {
+    }
+
+    class ErrorBoundary {
+        +hasError: boolean
+        +error: Error | null
+        +componentDidCatch()
+        +render()
+    }
+
+    class LoadingScreen {
+        +isLoading: boolean
+        +render()
+    }
+}
+
+
+@enduml 

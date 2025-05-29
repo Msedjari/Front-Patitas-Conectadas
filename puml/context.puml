@@ -1,0 +1,81 @@
+@startuml Context
+!theme plain
+skinparam classStyle rectangle
+
+package "Context" {
+    class AuthContext {
+        +user: User | null
+        +isAuthenticated: boolean
+        +isLoading: boolean
+        +login(email: string, password: string): Promise<boolean>
+        +register(nombre: string, correo: string, contrasena: string, apellido?: string): Promise<boolean>
+        +logout(): void
+        +refreshUserData(): Promise<void>
+    }
+
+    class UserContext {
+        +cachedUsers: Record<string, UserData>
+        +getUserById(userId: string): Promise<UserData | null>
+    }
+
+    class AuthProvider {
+        +children: ReactNode
+        +render(): JSX.Element
+        +initializeAuth(): void
+        +handleAuthStateChange(): void
+    }
+
+    class UserProvider {
+        +children: ReactNode
+        +render(): JSX.Element
+        +updateCache(userId: string, data: UserData): void
+        +clearCache(): void
+    }
+}
+
+' Interfaces
+interface User {
+    +id: string
+    +nombre?: string
+    +name?: string
+    +email: string
+    +apellidos?: string
+    +img?: string
+    +profileImage?: string
+}
+
+interface UserData {
+    +id: string
+    +nombre?: string
+    +apellidos?: string
+    +img?: string
+}
+
+interface AuthContextType {
+    +user: User | null
+    +isAuthenticated: boolean
+    +login(email: string, password: string): Promise<boolean>
+    +register(nombre: string, correo: string, contrasena: string, apellido?: string): Promise<boolean>
+    +logout(): void
+    +refreshUserData(): Promise<void>
+    +isLoading: boolean
+}
+
+interface UserContextType {
+    +getUserById(userId: string): Promise<UserData | null>
+    +cachedUsers: Record<string, UserData>
+}
+
+' Relaciones
+AuthContext ..|> AuthContextType
+UserContext ..|> UserContextType
+AuthProvider --> AuthContext : proporciona
+UserProvider --> UserContext : proporciona
+AuthContext --> User : maneja
+UserContext --> UserData : maneja
+
+' Dependencias
+AuthProvider --> User : gestiona
+UserProvider --> UserData : gestiona
+
+@enduml 

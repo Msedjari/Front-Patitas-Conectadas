@@ -1,0 +1,67 @@
+@startuml SavedPosts
+!theme plain
+skinparam classStyle rectangle
+
+package "components.SavedPosts" {
+    class PostCard {
+        +post: Post
+        +onUpdate?: () => void
+        -mostrarComentarios: boolean
+        -likes: number
+        -meGusta: boolean
+        -procesando: boolean
+        -comentarios: any[]
+        -cargandoComentarios: boolean
+        +handleLike(): Promise<void>
+        +cargarComentarios(): Promise<void>
+        +toggleComentarios(): void
+        +render(): JSX.Element
+    }
+
+    class ComentariosLista {
+        +postId: number
+        +comentarios: Comentario[]
+        +onNuevoComentario: () => void
+        -nuevoComentario: string
+        -enviando: boolean
+        +handleSubmit(e: React.FormEvent): Promise<void>
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Post {
+    +id: number
+    +contenido: string
+    +fecha: string
+    +usuarioId: number
+    +usuarioNombre: string
+    +usuarioApellido: string
+    +usuarioImg?: string
+    +imagenes?: string[]
+    +likes: number
+    +meGusta: boolean
+    +comentarios: number
+}
+
+interface Comentario {
+    +id: number
+    +contenido: string
+    +fecha: string
+    +usuarioId: number
+    +usuarioNombre: string
+    +usuarioApellido: string
+    +usuarioImg?: string
+}
+
+' Relaciones
+PostCard --> Post : usa
+PostCard --> ComentariosLista : contiene
+ComentariosLista --> Comentario : maneja
+
+' Dependencias
+PostCard --> feedService : usa
+PostCard --> config : usa
+ComentariosLista --> config : usa
+
+@enduml 

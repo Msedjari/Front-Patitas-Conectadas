@@ -1,0 +1,104 @@
+@startuml Groups
+!theme plain
+skinparam classStyle rectangle
+
+package "components.groups" {
+    class GrupoForm {
+        -formData: GrupoData
+        -validationErrors: ValidationErrors
+        +handleInputChange(e: ChangeEvent): void
+        +handleSubmit(e: FormEvent): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class GrupoCard {
+        -grupo: Grupo
+        +handleJoin(): Promise<void>
+        +handleLeave(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class GruposList {
+        -grupos: Grupo[]
+        -loading: boolean
+        -error: string | null
+        +fetchGrupos(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class MiembrosGrupo {
+        -miembros: UsuarioGrupo[]
+        -loading: boolean
+        -error: string | null
+        -searchTerm: string
+        -isAdmin: boolean
+        +fetchMiembros(): Promise<void>
+        +handleRemoveMember(miembroId: number): Promise<void>
+        +handleChangeRole(miembro: UsuarioGrupo, newRole: string): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class BotonUnirseGrupo {
+        -grupoId: number
+        -isMember: boolean
+        -loading: boolean
+        +handleJoin(): Promise<void>
+        +handleLeave(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class DeleteGrupoDialog {
+        -grupoId: number
+        -isOpen: boolean
+        +handleDelete(): Promise<void>
+        +handleClose(): void
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Grupo {
+    +id: number
+    +nombre: string
+    +descripcion: string
+    +creador_id: number
+    +fecha_creacion: string
+    +miembros_count: number
+}
+
+interface UsuarioGrupo {
+    +id: number
+    +grupoId: number
+    +nombreGrupo: string
+    +usuarioId: number
+    +nombreUsuario: string
+    +apellidoUsuario: string
+    +rol: string
+}
+
+interface GrupoData {
+    +nombre: string
+    +descripcion: string
+}
+
+interface ValidationErrors {
+    +nombre: string
+    +descripcion: string
+}
+
+' Relaciones
+GruposList o-- GrupoCard : contiene
+GrupoCard o-- BotonUnirseGrupo : contiene
+GrupoCard o-- DeleteGrupoDialog : contiene
+MiembrosGrupo ..> UsuarioGrupo : usa
+
+' Dependencias
+GrupoForm ..> ActionButton : usa
+GruposList ..> LoadingSpinner : usa
+GruposList ..> ErrorMessage : usa
+MiembrosGrupo ..> useAuth : usa
+MiembrosGrupo ..> groupService : usa
+BotonUnirseGrupo ..> groupService : usa
+DeleteGrupoDialog ..> groupService : usa
+
+@enduml 

@@ -1,0 +1,63 @@
+@startuml Post
+!theme plain
+skinparam classStyle rectangle
+
+package "components.post" {
+    class PostContent {
+        +post: Post
+        +currentUser: User
+        +onPostUpdated: () => void
+        -menuOpen: boolean
+        +render(): JSX.Element
+    }
+
+    class DeletePostButton {
+        +postId: number
+        +isAuthor: boolean
+        +onPostDeleted: () => void
+        -showConfirmation: boolean
+        +render(): JSX.Element
+    }
+
+    class DeleteConfirmationModal {
+        +postId: number
+        +onCancel: () => void
+        +onConfirm: () => void
+        -isDeleting: boolean
+        -error: string
+        +handleDelete(): Promise<void>
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Post {
+    +id: number
+    +userId: number
+    +contenido: string
+    +fecha: string
+    +imagenes?: string[]
+    +likes: number
+    +comentarios: number
+}
+
+interface User {
+    +id: number
+    +nombre: string
+    +apellido: string
+    +email: string
+    +foto?: string
+}
+
+' Relaciones
+PostContent --> DeletePostButton : contiene
+DeletePostButton --> DeleteConfirmationModal : usa
+DeleteConfirmationModal --> postService : usa
+
+' Dependencias
+PostContent --> Post : usa
+PostContent --> User : usa
+DeletePostButton --> Post : referencia
+DeleteConfirmationModal --> Post : referencia
+
+@enduml 

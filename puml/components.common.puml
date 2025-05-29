@@ -1,0 +1,119 @@
+@startuml Common
+!theme plain
+skinparam classStyle rectangle
+
+package "components.common" {
+    class ActionButton {
+        -variant: 'primary' | 'secondary' | 'danger' | 'outline'
+        -size: 'sm' | 'md' | 'lg'
+        -icon: ReactNode
+        -loading: boolean
+        +render(): JSX.Element
+    }
+
+    class FileUploader {
+        -isUploading: boolean
+        -fileInputRef: RefObject<HTMLInputElement>
+        +getAuthHeaders(): Record<string, string>
+        +handleFileChange(event: ChangeEvent): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class LoadingSpinner {
+        -size: 'small' | 'medium' | 'large'
+        +render(): JSX.Element
+    }
+
+    class ErrorMessage {
+        -message: string
+        -onClose: () => void
+        -onRetry?: () => void
+        +render(): JSX.Element
+    }
+
+    class SuccessMessage {
+        -message: string
+        -onClose: () => void
+        +render(): JSX.Element
+    }
+
+    class ConfirmDialog {
+        -isOpen: boolean
+        -title: string
+        -message: string
+        -onConfirm: () => void
+        -onCancel: () => void
+        +render(): JSX.Element
+    }
+
+    class DeleteConfirmDialog {
+        -isOpen: boolean
+        -itemName: string
+        -onConfirm: () => void
+        -onCancel: () => void
+        +render(): JSX.Element
+    }
+
+    class EmptyState {
+        -title: string
+        -message: string
+        -icon?: ReactNode
+        -action?: ReactNode
+        +render(): JSX.Element
+    }
+
+    class BotonSeguir {
+        -userId: number
+        -isFollowing: boolean
+        -loading: boolean
+        +handleFollow(): Promise<void>
+        +handleUnfollow(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class EmojiPicker {
+        -onSelect: (emoji: string) => void
+        -onClose: () => void
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface FileUploaderProps {
+    +endpoint: string
+    +method: string
+    +additionalData?: Record<string, string>
+    +onUploaded: (url: string) => void
+    +onError: (error: string) => void
+    +disabled?: boolean
+    +disabledMessage?: string
+    +onUploadStart?: () => void
+    +returnFullUrl?: boolean
+    +sendAdditionalData?: boolean
+}
+
+interface ActionButtonProps {
+    +variant?: 'primary' | 'secondary' | 'danger' | 'outline'
+    +size?: 'sm' | 'md' | 'lg'
+    +icon?: ReactNode
+    +loading?: boolean
+    +children: ReactNode
+}
+
+' Relaciones
+FileUploader ..> config : usa
+BotonSeguir ..> userService : usa
+EmojiPicker ..> emojiData : usa
+
+' Dependencias
+ActionButton ..> ReactNode : usa
+FileUploader ..> FormData : usa
+LoadingSpinner ..> SVG : usa
+ErrorMessage ..> ActionButton : usa
+SuccessMessage ..> ActionButton : usa
+ConfirmDialog ..> ActionButton : usa
+DeleteConfirmDialog ..> ActionButton : usa
+EmptyState ..> ReactNode : usa
+BotonSeguir ..> ActionButton : usa
+
+@enduml 

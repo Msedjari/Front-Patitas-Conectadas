@@ -1,0 +1,68 @@
+@startuml Layout
+!theme plain
+skinparam classStyle rectangle
+
+package "components.layout" {
+    class MainLayout {
+        -sidebarOpen: boolean
+        +openSidebar(): void
+        +closeSidebar(): void
+        +render(): JSX.Element
+    }
+
+    class Navbar {
+        -userMenuOpen: boolean
+        -showNotificaciones: boolean
+        -noLeidas: number
+        -searchQuery: string
+        -searchResults: User[]
+        -isSearching: boolean
+        +handleLogout(): void
+        +handleProfileClick(): void
+        +render(): JSX.Element
+    }
+
+    class Sidebar {
+        +isMobile: boolean
+        +onClose?: () => void
+        +render(): JSX.Element
+    }
+
+    class RightSidebar {
+        +render(): JSX.Element
+    }
+
+    class MobileBottomNav {
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface User {
+    +id: number
+    +nombre: string
+    +apellido: string
+    +email: string
+    +foto?: string
+}
+
+' Relaciones
+MainLayout o-- Navbar : contiene
+MainLayout o-- Sidebar : contiene
+MainLayout o-- RightSidebar : contiene
+MainLayout o-- MobileBottomNav : contiene
+
+' Dependencias
+MainLayout ..> Outlet : usa
+Navbar ..> useAuth : usa
+Navbar ..> useNavigate : usa
+Navbar ..> useLocation : usa
+Navbar ..> NotificacionesDropdown : usa
+Navbar ..> userService : usa
+Navbar ..> notificacionesService : usa
+
+Sidebar ..> Link : usa
+RightSidebar ..> Link : usa
+MobileBottomNav ..> Link : usa
+
+@enduml 

@@ -1,0 +1,160 @@
+@startuml Services
+!theme plain
+skinparam classStyle rectangle
+
+package "Services" {
+    class ApiService {
+        +{static} baseURL: string
+        +{static} headers: object
+        +{static} interceptors: object
+        +{static} get(url: string): Promise
+        +{static} post(url: string, data: any): Promise
+        +{static} put(url: string, data: any): Promise
+        +{static} delete(url: string): Promise
+    }
+
+    class UserService {
+        +getUser(id: number): Promise<User>
+        +updateUser(id: number, data: any): Promise<User>
+        +deleteUser(id: number): Promise<void>
+        +getUserProfile(id: number): Promise<Profile>
+        +updateUserProfile(id: number, data: any): Promise<Profile>
+    }
+
+    class PostService {
+        +getPosts(): Promise<Post[]>
+        +getPost(id: number): Promise<Post>
+        +createPost(data: any): Promise<Post>
+        +updatePost(id: number, data: any): Promise<Post>
+        +deletePost(id: number): Promise<void>
+        +likePost(id: number): Promise<void>
+        +unlikePost(id: number): Promise<void>
+    }
+
+    class CommentService {
+        +getComments(postId: number): Promise<Comment[]>
+        +createComment(postId: number, data: any): Promise<Comment>
+        +updateComment(id: number, data: any): Promise<Comment>
+        +deleteComment(id: number): Promise<void>
+    }
+
+    class GroupService {
+        +getGroups(): Promise<Group[]>
+        +getGroup(id: number): Promise<Group>
+        +createGroup(data: any): Promise<Group>
+        +updateGroup(id: number, data: any): Promise<Group>
+        +deleteGroup(id: number): Promise<void>
+        +joinGroup(id: number): Promise<void>
+        +leaveGroup(id: number): Promise<void>
+    }
+
+    class EventService {
+        +getEvents(): Promise<Event[]>
+        +getEvent(id: number): Promise<Event>
+        +createEvent(data: any): Promise<Event>
+        +updateEvent(id: number, data: any): Promise<Event>
+        +deleteEvent(id: number): Promise<void>
+        +joinEvent(id: number): Promise<void>
+        +leaveEvent(id: number): Promise<void>
+    }
+
+    class ChatService {
+        +getConversations(): Promise<Conversation[]>
+        +getMessages(conversationId: number): Promise<Message[]>
+        +sendMessage(conversationId: number, data: any): Promise<Message>
+        +createConversation(userId: number): Promise<Conversation>
+    }
+
+    class NotificationService {
+        +getNotifications(): Promise<Notification[]>
+        +markAsRead(id: number): Promise<void>
+        +deleteNotification(id: number): Promise<void>
+    }
+
+    class PetService {
+        +getPets(userId: number): Promise<Pet[]>
+        +getPet(id: number): Promise<Pet>
+        +createPet(data: any): Promise<Pet>
+        +updatePet(id: number, data: any): Promise<Pet>
+        +deletePet(id: number): Promise<void>
+    }
+
+    class WebSocketService {
+        +connect(): void
+        +disconnect(): void
+        +subscribe(channel: string): void
+        +unsubscribe(channel: string): void
+        +sendMessage(channel: string, data: any): void
+    }
+}
+
+' Interfaces
+interface User {
+    +id: number
+    +nombre: string
+    +apellido: string
+}
+
+interface Post {
+    +id: number
+    +contenido: string
+}
+
+interface Comment {
+    +id: number
+    +contenido: string
+}
+
+interface Group {
+    +id: number
+    +nombre: string
+}
+
+interface Event {
+    +id: number
+    +titulo: string
+}
+
+interface Conversation {
+    +id: number
+    +participantes: User[]
+}
+
+interface Message {
+    +id: number
+    +contenido: string
+}
+
+interface Notification {
+    +id: number
+    +mensaje: string
+}
+
+interface Pet {
+    +id: number
+    +nombre: string
+}
+
+' Relaciones
+UserService ..|> User
+PostService ..|> Post
+CommentService ..|> Comment
+GroupService ..|> Group
+EventService ..|> Event
+ChatService ..|> Conversation
+ChatService ..|> Message
+NotificationService ..|> Notification
+PetService ..|> Pet
+
+' Dependencias
+UserService --> ApiService : usa
+PostService --> ApiService : usa
+CommentService --> ApiService : usa
+GroupService --> ApiService : usa
+EventService --> ApiService : usa
+ChatService --> ApiService : usa
+ChatService --> WebSocketService : usa
+NotificationService --> ApiService : usa
+PetService --> ApiService : usa
+
+@enduml 

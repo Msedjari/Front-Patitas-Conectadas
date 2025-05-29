@@ -18,6 +18,7 @@
 const isDevelopment = import.meta.env.DEV;
 
 // URLs para diferentes entornos
+//const DEV_API_URL = 'http://192.168.1.141:4000'; // URL de desarrollo local
 const DEV_API_URL = 'http://192.168.251.81:4000';
 //const DEV_API_URL = 'http://localhost:4000'; // Usa la URL de desarrollo local
 const PROD_API_URL = '/api'; // Usa la misma ruta base en producción

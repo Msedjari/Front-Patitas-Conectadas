@@ -1,0 +1,78 @@
+@startuml Eventos
+!theme plain
+skinparam classStyle rectangle
+
+package "components.eventos" {
+    class EventosList {
+        -eventos: Evento[]
+        -joinedEvents: {[key: string]: boolean}
+        -loading: {[key: number]: boolean}
+        +handleJoinEvent(eventId: number): Promise<void>
+        +handleAsistir(eventoId: number): Promise<void>
+        +handleNoAsistir(eventoId: number): Promise<void>
+        +renderAsistenciaButton(evento: Evento): JSX.Element
+        +render(): JSX.Element
+    }
+
+    class EventoForm {
+        -nombre: string
+        -descripcion: string
+        -ubicacion: string
+        -fecha: string
+        +handleSubmit(e: FormEvent): void
+        +render(): JSX.Element
+    }
+
+    class ParticipantesEvento {
+        -eventoId: number
+        -participantes: UsuarioEvento[]
+        -loading: boolean
+        -error: string | null
+        +fetchParticipantes(): Promise<void>
+        +handleRemoveParticipante(participanteId: number): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class DeleteEventoDialog {
+        -eventoId: number
+        -isOpen: boolean
+        +handleDelete(): Promise<void>
+        +handleClose(): void
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Evento {
+    +id: number
+    +nombre: string
+    +descripcion: string
+    +ubicacion: string
+    +fecha: string
+    +creadorId: number
+    +participantes?: UsuarioEvento[]
+}
+
+interface UsuarioEvento {
+    +id: number
+    +eventoId: number
+    +usuarioId: number
+    +nombreUsuario: string
+    +apellidoUsuario: string
+    +rol: string
+}
+
+' Relaciones
+EventosList o-- EventoForm : contiene
+EventosList o-- DeleteEventoDialog : contiene
+EventosList o-- ParticipantesEvento : contiene
+
+' Dependencias
+EventosList ..> useAuth : usa
+EventosList ..> usuarioEventoService : usa
+EventosList ..> ActionButton : usa
+EventoForm ..> ActionButton : usa
+ParticipantesEvento ..> LoadingSpinner : usa
+DeleteEventoDialog ..> eventosService : usa
+
+@enduml 

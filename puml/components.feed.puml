@@ -1,0 +1,65 @@
+@startuml Feed
+!theme plain
+skinparam classStyle rectangle
+
+package "components.feed" {
+    class ParaTi {
+        -posts: Post[]
+        -loading: boolean
+        -error: string | null
+        +cargarPosts(): Promise<void>
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Post {
+    +id: number
+    +contenido: string
+    +fecha?: string
+    +img?: string
+    +createdAt?: string
+    +updatedAt?: string
+    +creador?: User
+    +creadorId?: number
+    +nombreCreador?: string
+    +apellidoCreador?: string
+    +comentarios?: Comment[]
+    +grupoId?: number
+    +nombreGrupo?: string
+    +estadisticas?: PostStats
+}
+
+interface User {
+    +id: number
+    +nombre: string
+    +apellido?: string
+    +email?: string
+}
+
+interface Comment {
+    +id: number
+    +postId: number
+    +creadorId: number
+    +nombreCreador: string
+    +apellidoCreador?: string
+    +contenido: string
+    +fecha: string
+    +img?: string
+}
+
+interface PostStats {
+    +likes: number
+    +comentarios: number
+}
+
+' Relaciones
+ParaTi o-- PostCard : contiene
+
+' Dependencias
+ParaTi ..> useAuth : usa
+ParaTi ..> feedService : usa
+ParaTi ..> LoadingSpinner : usa
+PostCard ..> Post : usa
+
+@enduml 

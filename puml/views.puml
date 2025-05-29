@@ -1,0 +1,182 @@
+@startuml Views
+!theme plain
+skinparam classStyle rectangle
+
+package "Views" {
+    class Profile {
+        +user: User
+        +posts: Post[]
+        +loading: boolean
+        +fetchUserData()
+        +handleUpdateProfile()
+        +renderProfileContent()
+    }
+
+    class Chat {
+        +conversations: Conversation[]
+        +activeChat: string
+        +messages: Message[]
+        +handleSendMessage()
+        +handleNewConversation()
+        +renderChatList()
+        +renderMessageList()
+    }
+
+    class Grupos {
+        +groups: Group[]
+        +userGroups: Group[]
+        +loading: boolean
+        +fetchGroups()
+        +handleJoinGroup()
+        +handleLeaveGroup()
+        +renderGroupList()
+    }
+
+    class GrupoVista {
+        +group: Group
+        +posts: Post[]
+        +members: User[]
+        +handlePostCreate()
+        +handleMemberAction()
+        +renderGroupContent()
+    }
+
+    class Eventos {
+        +events: Event[]
+        +userEvents: Event[]
+        +loading: boolean
+        +fetchEvents()
+        +handleEventJoin()
+        +handleEventCreate()
+        +renderEventList()
+    }
+
+    class Notificaciones {
+        +notifications: Notification[]
+        +unreadCount: number
+        +fetchNotifications()
+        +markAsRead()
+        +handleNotificationAction()
+        +renderNotificationList()
+    }
+
+    class Amigos {
+        +friends: User[]
+        +pendingRequests: User[]
+        +suggestions: User[]
+        +handleFriendRequest()
+        +handleUnfriend()
+        +renderFriendList()
+    }
+
+    class Guardados {
+        +savedPosts: Post[]
+        +loading: boolean
+        +fetchSavedPosts()
+        +handleUnsave()
+        +renderSavedList()
+    }
+
+    class MascotaForm {
+        +pet: Pet
+        +images: string[]
+        +handleImageUpload()
+        +handleSubmit()
+        +validateForm()
+        +renderForm()
+    }
+
+    class Configuracion {
+        +userSettings: Settings
+        +handleSettingChange()
+        +handleSaveSettings()
+        +renderSettingsForm()
+    }
+}
+
+' Interfaces
+interface User {
+    +id: string
+    +name: string
+    +avatar: string
+    +email: string
+}
+
+interface Post {
+    +id: string
+    +content: string
+    +images: string[]
+    +author: User
+    +timestamp: Date
+}
+
+interface Group {
+    +id: string
+    +name: string
+    +description: string
+    +members: User[]
+    +posts: Post[]
+}
+
+interface Event {
+    +id: string
+    +title: string
+    +description: string
+    +date: Date
+    +location: string
+    +participants: User[]
+}
+
+interface Message {
+    +id: string
+    +content: string
+    +sender: User
+    +timestamp: Date
+}
+
+interface Conversation {
+    +id: string
+    +participants: User[]
+    +lastMessage: Message
+}
+
+interface Notification {
+    +id: string
+    +type: string
+    +content: string
+    +read: boolean
+    +timestamp: Date
+}
+
+interface Pet {
+    +id: string
+    +name: string
+    +type: string
+    +breed: string
+    +age: number
+    +images: string[]
+}
+
+interface Settings {
+    +notifications: boolean
+    +privacy: string
+    +theme: string
+    +language: string
+}
+
+' Relaciones
+Profile ..|> User
+Profile ..|> Post
+Chat ..|> Conversation
+Chat ..|> Message
+Grupos ..|> Group
+GrupoVista ..|> Group
+GrupoVista ..|> Post
+Eventos ..|> Event
+Notificaciones ..|> Notification
+Amigos ..|> User
+Guardados ..|> Post
+MascotaForm ..|> Pet
+Configuracion ..|> Settings
+
+@enduml 

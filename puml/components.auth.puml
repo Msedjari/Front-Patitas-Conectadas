@@ -1,0 +1,100 @@
+@startuml Auth
+!theme plain
+skinparam classStyle rectangle
+
+package "components.auth" {
+    class Login {
+        -formData: { email: string, password: string }
+        -error: string | null
+        -isLoading: boolean
+        +handleChange(e: ChangeEvent): void
+        +handleSubmit(e: FormEvent): Promise<void>
+        +useDevLogin(): void
+        +render(): JSX.Element
+    }
+
+    class Register {
+        -formData: { nombre: string, apellido: string, correo: string, contrasena: string, confirmarContrasena: string }
+        -error: string | null
+        -isLoading: boolean
+        +handleChange(e: ChangeEvent): void
+        +handleSubmit(e: FormEvent): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class AuthLayout {
+        -children: ReactNode
+        -onLogoClick?: () => void
+        +render(): JSX.Element
+    }
+
+    class FormInput {
+        -id: string
+        -name: string
+        -type: string
+        -label: string
+        -value: string
+        -onChange: (e: ChangeEvent) => void
+        -placeholder: string
+        -className?: string
+        +render(): JSX.Element
+    }
+
+    class FormError {
+        -message: string | null
+        +render(): JSX.Element
+    }
+
+    class AuthButton {
+        -type?: "button" | "submit"
+        -primary: boolean
+        -disabled?: boolean
+        -onClick?: () => void
+        -children: ReactNode
+        +render(): JSX.Element
+    }
+
+    class ProtectedRoute {
+        -children: ReactNode
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface LoginFormData {
+    +email: string
+    +password: string
+}
+
+interface RegisterFormData {
+    +nombre: string
+    +apellido: string
+    +correo: string
+    +contrasena: string
+    +confirmarContrasena: string
+}
+
+' Relaciones
+Login o-- FormInput : contiene
+Login o-- FormError : contiene
+Login o-- AuthButton : contiene
+Login o-- AuthLayout : usa
+
+Register o-- FormInput : contiene
+Register o-- FormError : contiene
+Register o-- AuthButton : contiene
+Register o-- AuthLayout : usa
+
+' Dependencias
+Login ..> useAuth : usa
+Login ..> useNavigate : usa
+Login ..> useLocation : usa
+
+Register ..> useAuth : usa
+Register ..> useNavigate : usa
+Register ..> useLocation : usa
+
+ProtectedRoute ..> useAuth : usa
+ProtectedRoute ..> Navigate : usa
+
+@enduml 

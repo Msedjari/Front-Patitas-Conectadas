@@ -1,0 +1,74 @@
+@startuml Src
+!theme plain
+skinparam classStyle rectangle
+
+package "src" {
+    class App {
+        +render(): JSX.Element
+    }
+
+    class main {
+        +render(): void
+    }
+
+    class config {
+        +API_URL: string
+        +WS_URL: string
+        +getAuthHeaders(): Headers
+    }
+
+    package "assets" {
+    }
+
+    package "components" {
+    }
+
+    package "context" {
+    }
+
+    package "routes" {
+    }
+
+    package "services" {
+    }
+
+    package "types" {
+    }
+
+    package "utils" {
+    }
+
+    package "views" {
+    }
+}
+
+' Relaciones
+App o-- components : usa
+App o-- routes : usa
+App o-- context : usa
+
+main o-- App : usa
+
+config ..> services : configura
+
+' Dependencias
+App ..> config : usa
+services ..> config : usa
+App ..> types : usa
+App ..> utils : usa
+App ..> assets : usa
+App ..> views : usa
+
+' Relaciones
+App --> components : usa
+App --> routes : usa
+App --> context : usa
+
+main --> App : usa
+
+config --> services : configura
+
+' Dependencias
+
+
+@enduml 

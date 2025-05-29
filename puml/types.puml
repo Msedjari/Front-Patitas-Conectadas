@@ -1,0 +1,101 @@
+@startuml Types
+!theme plain
+skinparam classStyle rectangle
+
+package "Types" {
+    interface Post {
+        +id: number
+        +contenido: string
+        +fecha: string
+        +usuarioId: number
+        +usuarioNombre: string
+        +usuarioApellido: string
+        +usuarioImg?: string
+        +likes: number
+        +comentarios: number
+        +meGusta: boolean
+        +imagenes?: string[]
+    }
+
+    interface User {
+        +id: number
+        +nombre: string
+        +apellido: string
+        +email: string
+        +imagen?: string
+        +fechaRegistro: string
+        +activo: boolean
+    }
+
+    interface Comment {
+        +id: number
+        +contenido: string
+        +fecha: string
+        +usuarioId: number
+        +postId: number
+        +usuarioNombre: string
+        +usuarioApellido: string
+        +usuarioImg?: string
+    }
+
+    interface Group {
+        +id: number
+        +nombre: string
+        +descripcion: string
+        +imagen?: string
+        +fechaCreacion: string
+        +creadorId: number
+        +miembros: number
+    }
+
+    interface Event {
+        +id: number
+        +titulo: string
+        +descripcion: string
+        +fecha: string
+        +ubicacion: string
+        +organizadorId: number
+        +imagen?: string
+        +participantes: number
+    }
+
+    interface Pet {
+        +id: number
+        +nombre: string
+        +tipo: string
+        +raza: string
+        +edad: number
+        +imagen?: string
+        +usuarioId: number
+    }
+
+    interface Notification {
+        +id: number
+        +tipo: string
+        +mensaje: string
+        +fecha: string
+        +leido: boolean
+        +usuarioId: number
+    }
+
+    interface Message {
+        +id: number
+        +contenido: string
+        +fecha: string
+        +emisorId: number
+        +receptorId: number
+        +leido: boolean
+    }
+}
+
+' Relaciones
+Post --> User : tiene
+Comment --> User : tiene
+Comment --> Post : pertenece
+Group --> User : tiene
+Event --> User : tiene
+Pet --> User : tiene
+Notification --> User : tiene
+Message --> User : tiene
+
+@enduml 

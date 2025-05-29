@@ -1,0 +1,50 @@
+@startuml Notificaciones
+!theme plain
+skinparam classStyle rectangle
+
+package "components.notificaciones" {
+    class NotificacionesDropdown {
+        +onClose: () => void
+        -notificaciones: Notificacion[]
+        -cargando: boolean
+        -noLeidas: number
+        -dropdownRef: RefObject<HTMLDivElement>
+        +cargarNotificaciones(): Promise<void>
+        +handleMarcarComoLeida(id: number): Promise<void>
+        +handleMarcarTodasComoLeidas(): Promise<void>
+        +renderNotificacion(notificacion: Notificacion): JSX.Element
+        +render(): JSX.Element
+    }
+
+    class NotificacionItem {
+        +notificacion: Notificacion
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Notificacion {
+    +id: number
+    +tipo: string
+    +mensaje: string
+    +fecha: string
+    +leida: boolean
+    +datos: NotificacionDatos
+}
+
+interface NotificacionDatos {
+    +contenido: string
+}
+
+' Relaciones
+NotificacionesDropdown o-- NotificacionItem : contiene
+NotificacionesDropdown o-- Notificacion : maneja
+Notificacion o-- NotificacionDatos : contiene
+
+' Dependencias
+NotificacionesDropdown ..> notificacionesService : usa
+NotificacionesDropdown ..> websocketService : usa
+NotificacionesDropdown ..> LoadingSpinner : usa
+NotificacionItem ..> Notificacion : usa
+
+@enduml 

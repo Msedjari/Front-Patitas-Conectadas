@@ -1,0 +1,83 @@
+@startuml Amigos
+!theme plain
+skinparam classStyle rectangle
+
+package "components.amigos" {
+    class BuscadorAmigos {
+        -query: string
+        -resultados: User[]
+        -amigos: User[]
+        -loading: boolean
+        -userImagesCache: Record<number, string>
+        +handleBuscar(e: FormEvent): Promise<void>
+        +handleAgregar(amigoId: number): Promise<void>
+        +handleEliminar(amigoId: number): Promise<void>
+        +esAmigo(usuarioId: number): boolean
+        +updateUserImagesCache(userId: number, imagePath: string): void
+        +render(): JSX.Element
+    }
+
+    class AmigoCard {
+        -id: number
+        -nombre: string
+        -apellido?: string
+        -img?: string
+        -email?: string
+        -onRemove: (amigo: any) => void
+        +render(): JSX.Element
+    }
+
+    class AmigosList {
+        -amigos: User[]
+        -loading: boolean
+        -error: string | null
+        +handleRemove(amigo: User): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class SeguidosList {
+        -seguidos: User[]
+        -loading: boolean
+        -error: string | null
+        +handleUnfollow(usuarioId: number): Promise<void>
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface User {
+    +id: number
+    +nombre: string
+    +apellido: string
+    +email: string
+    +img?: string
+}
+
+interface AmigoCardProps {
+    +id: number
+    +nombre: string
+    +apellido?: string
+    +img?: string
+    +email?: string
+    +onRemove: (amigo: any) => void
+}
+
+' Relaciones
+BuscadorAmigos o-- AmigoCard : contiene
+AmigosList o-- AmigoCard : contiene
+SeguidosList o-- AmigoCard : contiene
+
+' Dependencias
+BuscadorAmigos ..> useAuth : usa
+BuscadorAmigos ..> userService : usa
+BuscadorAmigos ..> getUserImage : usa
+
+AmigoCard ..> BotonSeguir : usa
+
+AmigosList ..> userService : usa
+AmigosList ..> useAuth : usa
+
+SeguidosList ..> userService : usa
+SeguidosList ..> useAuth : usa
+
+@enduml 

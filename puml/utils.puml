@@ -1,0 +1,71 @@
+@startuml Utils
+!theme plain
+skinparam classStyle rectangle
+
+package "utils" {
+    class events {
+        +{static} FOLLOW_CHANGE_EVENT: string
+        +{static} dispatchFollowChangeEvent(followerId: number, followedId: number): void
+    }
+
+    class DateUtils {
+        +{static} formatDate(date: Date): string
+        +{static} getRelativeTime(date: Date): string
+        +{static} isValidDate(date: Date): boolean
+    }
+
+    class ValidationUtils {
+        +{static} isValidEmail(email: string): boolean
+        +{static} isValidPassword(password: string): boolean
+        +{static} isValidUsername(username: string): boolean
+    }
+
+    class FileUtils {
+        +{static} isValidImage(file: File): boolean
+        +{static} getFileSize(file: File): string
+        +{static} getFileExtension(file: File): string
+    }
+
+    class StringUtils {
+        +{static} truncate(text: string, length: number): string
+        +{static} capitalize(text: string): string
+        +{static} slugify(text: string): string
+    }
+
+    class StorageUtils {
+        +{static} setItem(key: string, value: any): void
+        +{static} getItem(key: string): any
+        +{static} removeItem(key: string): void
+        +{static} clear(): void
+    }
+
+    class ApiUtils {
+        +{static} handleApiError(error: any): string
+        +{static} formatApiResponse(data: any): any
+        +{static} getAuthHeader(): object
+    }
+
+    class NotificationUtils {
+        +{static} showSuccess(message: string): void
+        +{static} showError(message: string): void
+        +{static} showWarning(message: string): void
+        +{static} showInfo(message: string): void
+    }
+}
+
+' Interfaces
+interface CustomEvent {
+    +type: string
+    +detail: any
+}
+
+interface FollowChangeEventDetail {
+    +followerId: number
+    +followedId: number
+}
+
+' Relaciones
+events ..> CustomEvent : usa
+events ..> window : usa
+
+@enduml 

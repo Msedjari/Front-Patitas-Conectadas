@@ -1,0 +1,137 @@
+@startuml Profile
+!theme plain
+skinparam classStyle rectangle
+
+package "components.profile" {
+    class Perfil {
+        +user: User
+        +profile: Profile
+        +loading: boolean
+        +error: string
+        +editMode: boolean
+        +loadProfile(): Promise<void>
+        +handleSubmit(): Promise<void>
+        +handleImageUrlChange(): void
+        +handlePasswordChange(): Promise<void>
+        +handleMascotaSubmit(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class ProfileHeader {
+        +profile: UserProfile
+        +isOwnProfile: boolean
+        -isEditingPhoto: boolean
+        -photoUrl: string
+        -isUploading: boolean
+        +handlePhotoChange(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class ProfileDetails {
+        +profile: UserProfile
+        +isOwnProfile: boolean
+        +onUpdate: () => void
+        +render(): JSX.Element
+    }
+
+    class ProfileActions {
+        +profile: UserProfile
+        +isOwnProfile: boolean
+        +onFollow: () => void
+        +onMessage: () => void
+        +render(): JSX.Element
+    }
+
+    class MascotasList {
+        +mascotas: Mascota[]
+        +loading: boolean
+        +error: string
+        +onAdd: () => void
+        +onEdit: (mascota: Mascota) => void
+        +onDelete: (mascota: Mascota) => void
+        +render(): JSX.Element
+    }
+
+    class MascotaCard {
+        +mascota: Mascota
+        +onEdit: (mascota: Mascota) => void
+        +onDelete: (mascota: Mascota) => void
+        +render(): JSX.Element
+    }
+
+    class Valoraciones {
+        +userId: number
+        +valoraciones: Valoracion[]
+        +loading: boolean
+        +error: string
+        +onAddValoracion: () => void
+        +render(): JSX.Element
+    }
+
+    class AddValoracion {
+        +userId: number
+        +onValoracionAdded: () => void
+        +onCancel: () => void
+        +render(): JSX.Element
+    }
+
+    class ProfileAmigos {
+        +userId: number
+        +amigos: User[]
+        +loading: boolean
+        +error: string
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface UserProfile {
+    +id: number
+    +nombre: string
+    +apellido: string
+    +email: string
+    +foto?: string
+    +descripcion?: string
+    +ciudad?: string
+}
+
+interface Mascota {
+    +id: number
+    +nombre: string
+    +especie: string
+    +genero: string
+    +fechaNacimiento: string
+    +foto?: string
+}
+
+interface Valoracion {
+    +id: number
+    +usuarioId: number
+    +valoracion: number
+    +comentario: string
+    +fecha: string
+}
+
+' Relaciones
+Perfil --> ProfileHeader : contiene
+Perfil --> ProfileDetails : contiene
+Perfil --> MascotasList : contiene
+Perfil --> Valoraciones : contiene
+Perfil --> ProfileAmigos : contiene
+
+ProfileHeader --> ProfileActions : contiene
+MascotasList --> MascotaCard : contiene
+Valoraciones --> AddValoracion : usa
+
+' Dependencias
+Perfil --> useAuth : usa
+Perfil --> profileService : usa
+Perfil --> postService : usa
+Perfil --> mascotasService : usa
+Perfil --> seguidosService : usa
+
+ProfileHeader --> userService : usa
+MascotasList --> mascotasService : usa
+Valoraciones --> valoracionesService : usa
+
+@enduml 

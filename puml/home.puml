@@ -1,0 +1,129 @@
+@startuml Home
+!theme plain
+skinparam classStyle rectangle
+
+package "Home" {
+    class Home {
+        +posts: Post[]
+        +loading: boolean
+        +error: string
+        +fetchPosts()
+        +handlePostCreate()
+        +handlePostDelete()
+        +handlePostUpdate()
+    }
+
+    class PostList {
+        +posts: Post[]
+        +onPostDelete()
+        +onPostUpdate()
+        +renderPosts()
+    }
+
+    class PostItem {
+        +post: Post
+        +onDelete()
+        +onUpdate()
+        +renderPostContent()
+        +renderPostActions()
+    }
+
+    class PostForm {
+        +onSubmit()
+        +handleImageUpload()
+        +handleTextChange()
+        +validateForm()
+    }
+
+    class PostContent {
+        +content: string
+        +images: string[]
+        +renderContent()
+        +renderImages()
+    }
+
+    class PostHeader {
+        +author: User
+        +timestamp: Date
+        +renderHeader()
+    }
+
+    class PostOptions {
+        +post: Post
+        +onDelete()
+        +onEdit()
+        +renderOptions()
+    }
+
+    class CommentsSection {
+        +comments: Comment[]
+        +onCommentAdd()
+        +onCommentDelete()
+        +renderComments()
+    }
+
+    class CommentForm {
+        +onSubmit()
+        +handleTextChange()
+        +validateComment()
+    }
+
+    class CommentList {
+        +comments: Comment[]
+        +onCommentDelete()
+        +renderCommentList()
+    }
+
+    class UserAvatar {
+        +user: User
+        +size: string
+        +renderAvatar()
+    }
+
+    class HomeUtils {
+        +formatDate()
+        +truncateText()
+        +validateImage()
+    }
+}
+
+' Relaciones
+Home --> PostList : contiene
+PostList --> PostItem : contiene
+PostItem --> PostContent : contiene
+PostItem --> PostHeader : contiene
+PostItem --> PostOptions : contiene
+PostItem --> CommentsSection : contiene
+CommentsSection --> CommentForm : contiene
+CommentsSection --> CommentList : contiene
+PostItem --> UserAvatar : usa
+Home --> HomeUtils : usa
+
+' Interfaces
+interface Post {
+    +id: string
+    +content: string
+    +images: string[]
+    +author: User
+    +timestamp: Date
+    +comments: Comment[]
+}
+
+interface Comment {
+    +id: string
+    +content: string
+    +author: User
+    +timestamp: Date
+}
+
+interface User {
+    +id: string
+    +name: string
+    +avatar: string
+}
+
+PostItem ..|> Post
+CommentList ..|> Comment
+UserAvatar ..|> User
+
+@enduml 

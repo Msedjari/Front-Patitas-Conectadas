@@ -1,0 +1,122 @@
+@startuml Home
+!theme plain
+skinparam classStyle rectangle
+
+package "components.home" {
+    class Home {
+        -posts: Post[]
+        -loading: boolean
+        -error: string | null
+        -isSubmitting: boolean
+        -userImagesCache: UserImagesCache
+        -hasLoadedRef: RefObject<boolean>
+        -emojiPickerRef: RefObject<HTMLDivElement>
+        -commentEmojiPickerRef: RefObject<HTMLDivElement>
+        +fetchPosts(): Promise<void>
+        +fetchUserImages(userIds: number[]): Promise<void>
+        +handlePostSubmit(postData: FormData): Promise<void>
+        +handleCommentSubmit(commentData: CommentData): Promise<void>
+        +handleLoadMore(): void
+        +handleDeletePost(postId: number): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class PostForm {
+        -isSubmitting: boolean
+        -showEmojiPicker: boolean
+        -emojiPickerRef: RefObject<HTMLDivElement>
+        +handleSubmit(postData: FormData): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class PostList {
+        -posts: Post[]
+        -userImagesCache: UserImagesCache
+        +render(): JSX.Element
+    }
+
+    class PostItem {
+        -post: Post
+        -userImagesCache: UserImagesCache
+        +handleDelete(): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class CommentForm {
+        -postId: number
+        -isSubmitting: boolean
+        -showEmojiPicker: boolean
+        -emojiPickerRef: RefObject<HTMLDivElement>
+        +handleSubmit(commentData: CommentData): Promise<void>
+        +render(): JSX.Element
+    }
+
+    class CommentList {
+        -comments: Comment[]
+        -userImagesCache: UserImagesCache
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Post {
+    +id: number
+    +contenido: string
+    +fecha?: string
+    +img?: string
+    +createdAt?: string
+    +updatedAt?: string
+    +creador?: User
+    +creadorId?: number
+    +nombreCreador?: string
+    +apellidoCreador?: string
+    +comentarios?: Comment[]
+    +grupoId?: number
+    +nombreGrupo?: string
+    +estadisticas?: PostStats
+}
+
+interface Comment {
+    +id: number
+    +postId: number
+    +creadorId: number
+    +nombreCreador: string
+    +apellidoCreador?: string
+    +contenido: string
+    +fecha: string
+    +img?: string
+}
+
+interface User {
+    +id: number
+    +nombre: string
+    +apellido?: string
+    +email?: string
+}
+
+interface PostStats {
+    +likes: number
+    +comentarios: number
+}
+
+interface UserImagesCache {
+    +[userId: number]: string
+}
+
+' Relaciones
+Home o-- PostForm : contiene
+Home o-- PostList : contiene
+PostList o-- PostItem : contiene
+PostItem o-- CommentForm : contiene
+PostItem o-- CommentList : contiene
+
+' Dependencias
+Home ..> useAuth : usa
+Home ..> postService : usa
+Home ..> commentService : usa
+PostForm ..> EmojiPickerButton : usa
+CommentForm ..> EmojiPickerButton : usa
+PostItem ..> UserAvatar : usa
+CommentList ..> UserAvatar : usa
+
+@enduml 

@@ -1,0 +1,64 @@
+@startuml Routes
+!theme plain
+skinparam classStyle rectangle
+
+package "components.routes" {
+    class AppRoutes {
+        +render(): JSX.Element
+    }
+
+    class ProtectedRoute {
+        +children: ReactNode
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Route {
+    +path: string
+    +element: JSX.Element
+}
+
+' Componentes de Vista
+class Login
+class Register
+class MainLayout
+class LoadingScreen
+class Home
+class Perfil
+class Profile
+class Eventos
+class Grupos
+class Amigos
+class Guardados
+class NotFound
+class Protectoras
+class MascotaForm
+class ParaTi
+
+' Relaciones
+AppRoutes --> Routes : usa
+AppRoutes --> Route : define
+AppRoutes --> ProtectedRoute : usa
+AppRoutes --> MainLayout : contiene
+AppRoutes --> LoadingScreen : usa
+
+ProtectedRoute --> useAuth : usa
+ProtectedRoute --> Navigate : usa
+
+MainLayout --> Home : contiene
+MainLayout --> ParaTi : contiene
+MainLayout --> Profile : contiene
+MainLayout --> Perfil : contiene
+MainLayout --> Grupos : contiene
+MainLayout --> Eventos : contiene
+MainLayout --> Amigos : contiene
+MainLayout --> Guardados : contiene
+MainLayout --> Protectoras : contiene
+MainLayout --> MascotaForm : contiene
+
+' Dependencias
+AppRoutes --> useAuth : usa
+ProtectedRoute --> useAuth : usa
+
+@enduml 

@@ -1,0 +1,78 @@
+@startuml Routes
+!theme plain
+skinparam classStyle rectangle
+
+package "Routes" {
+    class AppRoutes {
+        +render(): JSX.Element
+        +setupRoutes(): Route[]
+    }
+
+    class ProtectedRoute {
+        +children: React.ReactNode
+        +isAuthenticated: boolean
+        +isLoading: boolean
+        +render(): JSX.Element
+        +checkAuth(): void
+    }
+
+    class RouteConfig {
+        +path: string
+        +element: React.Component
+        +isProtected: boolean
+        +children?: RouteConfig[]
+    }
+
+    class RouteManager {
+        +{static} routes: RouteConfig[]
+        +{static} addRoute(route: RouteConfig): void
+        +{static} getRoute(path: string): RouteConfig
+        +{static} isProtected(path: string): boolean
+    }
+}
+
+package "Views" {
+    class Home
+    class Login
+    class Register
+    class Profile
+    class NotFound
+    class Grupos
+    class GrupoVista
+}
+
+package "Context" {
+    class AuthContext {
+        +isAuthenticated: boolean
+        +isLoading: boolean
+        +checkAuth(): void
+    }
+}
+
+' Interfaces
+interface Route {
+    +path: string
+    +element: React.Component
+}
+
+' Relaciones
+AppRoutes --> RouteConfig : configura
+AppRoutes --> ProtectedRoute : usa
+ProtectedRoute --> AuthContext : usa
+RouteManager --> RouteConfig : gestiona
+
+' Dependencias de vistas
+AppRoutes --> Home : renderiza
+AppRoutes --> Login : renderiza
+AppRoutes --> Register : renderiza
+AppRoutes --> Profile : renderiza
+AppRoutes --> NotFound : renderiza
+AppRoutes --> Grupos : renderiza
+AppRoutes --> GrupoVista : renderiza
+
+' Rutas protegidas
+Profile ..|> ProtectedRoute
+Grupos ..|> ProtectedRoute
+GrupoVista ..|> ProtectedRoute
+
+@enduml 

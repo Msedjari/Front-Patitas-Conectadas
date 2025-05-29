@@ -1,0 +1,67 @@
+@startuml Chat
+!theme plain
+skinparam classStyle rectangle
+
+package "components.chat" {
+    class ChatConversacion {
+        -mensajes: Mensaje[]
+        -nuevoMensaje: string
+        -cargando: boolean
+        -enviando: boolean
+        -mostrarConfirmacionBorrar: boolean
+        -showEmojiPicker: boolean
+        -userImagesCache: Record<number, string>
+        -mensajesEndRef: RefObject<HTMLDivElement>
+        -ultimoMensajeIdRef: RefObject<number>
+        -emojiPickerRef: RefObject<HTMLDivElement>
+        +cargarMensajes(): Promise<void>
+        +enviarMensaje(e: FormEvent): Promise<void>
+        +handleBorrarConversacion(): Promise<void>
+        +handleEmojiSelect(emoji: string): void
+        +scrollToBottom(): void
+        +render(): JSX.Element
+    }
+
+    class MensajeItem {
+        -mensaje: Mensaje
+        -esPropio: boolean
+        +render(): JSX.Element
+    }
+}
+
+' Interfaces
+interface Mensaje {
+    +id: number
+    +contenido: string
+    +fechaHora: string
+    +remitenteId: number
+    +destinatarioId: number
+    +visto: boolean
+}
+
+interface ChatConversacionProps {
+    +otroUsuarioId: number
+    +otroUsuarioNombre: string
+    +onMensajeEnviado?: (mensaje: Mensaje) => void
+    +onConversacionBorrada?: () => void
+    +onBack?: () => void
+}
+
+interface MensajeItemProps {
+    +mensaje: Mensaje
+    +esPropio: boolean
+}
+
+' Relaciones
+ChatConversacion o-- MensajeItem : contiene
+
+' Dependencias
+ChatConversacion ..> useAuth : usa
+ChatConversacion ..> chatService : usa
+ChatConversacion ..> LoadingSpinner : usa
+ChatConversacion ..> ConfirmDialog : usa
+ChatConversacion ..> EmojiPickerComponent : usa
+ChatConversacion ..> getUserImage : usa
+MensajeItem ..> format : usa
+
+@enduml 
