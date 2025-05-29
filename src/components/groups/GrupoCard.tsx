@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Group as Grupo } from '../../services/groupService';
 import BotonUnirseGrupo from './BotonUnirseGrupo';
+import { useAuth } from '../../context/AuthContext';
+import { usuarioGrupoService, UsuarioGrupo } from '../../services/usuarioGrupoService';
 
 interface GrupoCardProps {
   grupo: Grupo;
   onEdit?: (grupo: Grupo) => void;
   onDelete?: (grupo: Grupo) => void;
   formatDate: (date?: string) => string;
-  isUserCreator?: boolean;
 }
 
 /**
@@ -18,16 +19,36 @@ const GrupoCard: React.FC<GrupoCardProps> = ({
   grupo, 
   onEdit, 
   onDelete, 
-  formatDate,
-  isUserCreator = false
+  formatDate
 }) => {
+  const { user } = useAuth();
+  const [relacion, setRelacion] = useState<UsuarioGrupo | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const loadRelacion = async () => {
+      if (user?.id && grupo.id) {
+        try {
+          const relaciones = await usuarioGrupoService.getUsuarioGruposByUsuario(Number(user.id));
+          const relacionGrupo = relaciones.find(r => r.grupoId === grupo.id);
+          setRelacion(relacionGrupo || null);
+          setIsAdmin(relacionGrupo?.rol === 'ADMINISTRADOR' || false);
+        } catch (error) {
+          console.error('Error al cargar relación usuario-grupo:', error);
+        }
+      }
+    };
+
+    loadRelacion();
+  }, [user?.id, grupo.id]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-gray-100">
       <div className="flex justify-between">
         <h3 className="text-lg font-semibold text-[#3d7b6f]">{grupo.nombre}</h3>
         
-        {/* Opciones para el creador del grupo */}
-        {isUserCreator && (
+        {/* Opciones para el administrador del grupo */}
+        {isAdmin && (
           <div className="relative group">
             <button className="text-gray-500 hover:text-[#3d7b6f]">
               <span className="material-icons">more_horiz</span>
@@ -63,7 +84,13 @@ const GrupoCard: React.FC<GrupoCardProps> = ({
       
       <div className="flex justify-between mt-4">
         {/* Botón para unirse al grupo */}
-        <BotonUnirseGrupo grupoId={grupo.id!} />
+        <BotonUnirseGrupo 
+          grupoId={grupo.id!} 
+          onStatusChange={(isMiembro, relacion) => {
+            setRelacion(relacion || null);
+            setIsAdmin(relacion?.rol === 'ADMINISTRADOR' || false);
+          }}
+        />
         
         {/* Enlace para ver el grupo */}
         <Link

@@ -731,18 +731,13 @@ const Perfil: React.FC = () => {
   const handleDeleteMascota = async (mascota: Mascota) => {
     if (!user?.id || !mascota.id) return;
     
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${mascota.nombre}?`)) {
-      return;
-    }
-    
     try {
-      setMascotaError(null);
+      setDeleteError(null);
       await deleteMascota(parseInt(user.id), mascota.id);
-      setMascotas(prev => prev.filter(m => m.id !== mascota.id));
-      setMascotaSuccess('Mascota eliminada exitosamente');
-    } catch (error) {
-      console.error('Error al eliminar mascota:', error);
-      setMascotaError('Error al eliminar la mascota');
+      setMascotas(prevMascotas => prevMascotas.filter(m => m.id !== mascota.id));
+    } catch (err) {
+      console.error('Error al eliminar mascota:', err);
+      setDeleteError('No se pudo eliminar la mascota. Intenta de nuevo más tarde.');
     }
   };
 

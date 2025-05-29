@@ -10,105 +10,82 @@ export interface UsuarioGrupo {
   rol: 'ADMINISTRADOR' | 'MIEMBRO';
 }
 
-export const usuarioGrupoService = {
-  // Obtener todos los grupos de un usuario
-  getGruposByUsuario: async (usuarioId: number): Promise<UsuarioGrupo[]> => {
-    try {
-      const token = localStorage.getItem(config.session.tokenKey);
-      if (!token) throw new Error('No hay token de autenticación');
-
-      const response = await fetch(`${config.apiUrl}/usuario-grupo/usuario/${usuarioId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error al obtener grupos del usuario: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error en getGruposByUsuario:', error);
-      throw error;
-    }
-  },
-
-  // Unirse a un grupo como miembro
-  unirseAGrupo: async (usuarioId: number, grupoId: number): Promise<UsuarioGrupo> => {
-    try {
-      const token = localStorage.getItem(config.session.tokenKey);
-      if (!token) throw new Error('No hay token de autenticación');
-
-      const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          usuarioId,
-          grupoId,
-          rol: 'MIEMBRO'
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error al unirse al grupo: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error en unirseAGrupo:', error);
-      throw error;
-    }
-  },
-
-  // Abandonar un grupo
-  abandonarGrupo: async (id: number): Promise<void> => {
-    try {
-      const token = localStorage.getItem(config.session.tokenKey);
-      if (!token) throw new Error('No hay token de autenticación');
-
-      const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error al abandonar el grupo: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error en abandonarGrupo:', error);
-      throw error;
-    }
-  },
-
-  // Obtener miembros de un grupo
-  getMiembrosGrupo: async (grupoId: number): Promise<UsuarioGrupo[]> => {
-    try {
-      const token = localStorage.getItem(config.session.tokenKey);
-      if (!token) throw new Error('No hay token de autenticación');
-
-      const response = await fetch(`${config.apiUrl}/usuario-grupo/grupo/${grupoId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error al obtener miembros del grupo: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error en getMiembrosGrupo:', error);
-      throw error;
-    }
+class UsuarioGrupoService {
+  private getHeaders() {
+    const token = localStorage.getItem(config.session.tokenKey);
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
   }
-}; 
+
+  async getUsuarioGrupo(id: number): Promise<UsuarioGrupo> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener la relación usuario-grupo');
+    return response.json();
+  }
+
+  async getUsuarioGrupos(): Promise<UsuarioGrupo[]> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener las relaciones usuario-grupo');
+    return response.json();
+  }
+
+  async getUsuarioGruposByUsuario(usuarioId: number): Promise<UsuarioGrupo[]> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/usuario/${usuarioId}`, {
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener las relaciones del usuario');
+    return response.json();
+  }
+
+  async getUsuarioGruposByGrupo(grupoId: number): Promise<UsuarioGrupo[]> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/grupo/${grupoId}`, {
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener las relaciones del grupo');
+    return response.json();
+  }
+
+  async createUsuarioGrupo(data: { usuarioId: number; grupoId: number; rol: 'ADMINISTRADOR' | 'MIEMBRO' }): Promise<UsuarioGrupo> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al crear la relación usuario-grupo');
+    return response.json();
+  }
+
+  async updateUsuarioGrupo(id: number, data: { usuarioId: number; grupoId: number; rol: 'ADMINISTRADOR' | 'MIEMBRO' }): Promise<UsuarioGrupo> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al actualizar la relación usuario-grupo');
+    return response.json();
+  }
+
+  async deleteUsuarioGrupo(id: number): Promise<void> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al eliminar la relación usuario-grupo');
+  }
+
+  async getRelacion(usuarioId: number, grupoId: number): Promise<UsuarioGrupo> {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/relacion/${usuarioId}/${grupoId}`, {
+      headers: this.getHeaders()
+    });
+    if (!response.ok) throw new Error('Error al obtener la relación');
+    return response.json();
+  }
+}
+
+export const usuarioGrupoService = new UsuarioGrupoService(); 

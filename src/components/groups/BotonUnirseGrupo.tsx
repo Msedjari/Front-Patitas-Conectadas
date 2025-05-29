@@ -9,81 +9,106 @@ interface BotonUnirseGrupoProps {
 
 const BotonUnirseGrupo: React.FC<BotonUnirseGrupoProps> = ({ grupoId, onStatusChange }) => {
   const { user } = useAuth();
-  const [isMiembro, setIsMiembro] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [relacion, setRelacion] = useState<UsuarioGrupo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    const verificarMembresia = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const grupos = await usuarioGrupoService.getGruposByUsuario(Number(user.id));
-        const miGrupo = grupos.find(g => g.grupoId === grupoId);
-        setIsMiembro(!!miGrupo);
-        setRelacion(miGrupo || null);
-        if (onStatusChange) onStatusChange(!!miGrupo, miGrupo);
-      } catch (error) {
-        console.error('Error al verificar membresía:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verificarMembresia();
+    if (user?.id) {
+      const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+      checkRelacion(userId);
+    }
   }, [user?.id, grupoId]);
 
-  const handleToggleMembresia = async () => {
-    if (!user?.id) return;
-
-    setActionLoading(true);
+  const checkRelacion = async (userId: number) => {
     try {
-      if (isMiembro && relacion) {
-        await usuarioGrupoService.abandonarGrupo(relacion.id);
-        setIsMiembro(false);
-        setRelacion(null);
-        if (onStatusChange) onStatusChange(false);
-      } else {
-        const nuevaRelacion = await usuarioGrupoService.unirseAGrupo(Number(user.id), grupoId);
-        setIsMiembro(true);
-        setRelacion(nuevaRelacion);
-        if (onStatusChange) onStatusChange(true, nuevaRelacion);
+      const relacion = await usuarioGrupoService.getRelacion(userId, grupoId);
+      setRelacion(relacion);
+      if (onStatusChange) {
+        onStatusChange(true, relacion);
       }
     } catch (error) {
-      console.error('Error al cambiar membresía:', error);
-      alert(error instanceof Error ? error.message : 'Error al procesar la solicitud');
-    } finally {
-      setActionLoading(false);
+      setRelacion(null);
+      if (onStatusChange) {
+        onStatusChange(false);
+      }
     }
   };
 
-  if (loading) {
-    return <button className="px-4 py-2 bg-gray-300 text-gray-600 rounded-md" disabled>Cargando...</button>;
+  const handleUnirse = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+      const nuevaRelacion = await usuarioGrupoService.createUsuarioGrupo({
+        usuarioId: userId,
+        grupoId,
+        rol: 'MIEMBRO'
+      });
+      
+      setRelacion(nuevaRelacion);
+      if (onStatusChange) {
+        onStatusChange(true, nuevaRelacion);
+      }
+    } catch (err) {
+      setError('Error al unirse al grupo');
+      console.error('Error al unirse al grupo:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAbandonar = async () => {
+    if (!relacion) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await usuarioGrupoService.deleteUsuarioGrupo(relacion.id);
+      setRelacion(null);
+      if (onStatusChange) {
+        onStatusChange(false);
+      }
+    } catch (err) {
+      setError('Error al abandonar el grupo');
+      console.error('Error al abandonar el grupo:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user) {
+    return null;
   }
 
   return (
-    <button
-      onClick={handleToggleMembresia}
-      disabled={actionLoading || (relacion?.rol === 'ADMINISTRADOR')}
-      className={`px-4 py-2 rounded-md transition-colors ${
-        relacion?.rol === 'ADMINISTRADOR'
-          ? 'bg-gray-500 cursor-not-allowed text-white'
-          : isMiembro 
-            ? 'bg-red-500 hover:bg-red-600 text-white' 
-            : 'bg-[#6cda84] hover:bg-[#5aa86d] text-white'
-      }`}
-    >
-      {actionLoading 
-        ? 'Procesando...' 
-        : relacion?.rol === 'ADMINISTRADOR'
-          ? 'Administrador'
-          : (isMiembro ? 'Abandonar grupo' : 'Unirse al grupo')}
-    </button>
+    <div>
+      {error && (
+        <p className="text-red-500 text-sm mb-2">{error}</p>
+      )}
+      
+      {relacion ? (
+        <button
+          onClick={handleAbandonar}
+          disabled={loading}
+          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+        >
+          {loading ? 'Abandonando...' : 'Abandonar grupo'}
+        </button>
+      ) : (
+        <button
+          onClick={handleUnirse}
+          disabled={loading}
+          className="px-4 py-2 bg-[#6cda84] text-white rounded-md hover:bg-[#5aa86d] disabled:opacity-50"
+        >
+          {loading ? 'Uniéndose...' : 'Unirse al grupo'}
+        </button>
+      )}
+    </div>
   );
 };
 

@@ -515,7 +515,7 @@ export const fetchRelacionUsuarioGrupo = async (usuarioId: number, grupoId: numb
   try {
     const token = localStorage.getItem(config.session.tokenKey);
     
-    const response = await fetch(`${config.apiUrl}/usuario-grupo/relacion/${usuarioId}/${grupoId}`, {
+    const response = await fetch(`${config.apiUrl}/usuario-grupo/${usuarioId}/${grupoId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

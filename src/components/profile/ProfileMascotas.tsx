@@ -75,10 +75,6 @@ const ProfileMascotas: React.FC<ProfileMascotasProps> = ({ userId, isOwnProfile 
   };
   
   const handleDeleteMascota = async (mascota: Mascota) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${mascota.nombre}?`)) {
-      return;
-    }
-    
     try {
       setDeleteError(null);
       await deleteMascota(mascota.id!, userId);
